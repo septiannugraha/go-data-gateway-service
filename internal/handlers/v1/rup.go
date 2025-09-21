@@ -26,21 +26,21 @@ func NewRUPHandler(bigquery *clients.BigQueryClient, logger *zap.Logger) *RUPHan
 	}
 }
 
-// RUPResponse represents the response structure for RUP data
+// RUPResponse represents the response structure for RUP data from rup_kromaster
 type RUPResponse struct {
-	KdRUP        string  `json:"kd_rup"`
-	NamaPaket    string  `json:"nama_paket"`
-	Pagu         float64 `json:"pagu"`
-	Tahun        string  `json:"tahun"`
-	KdSatker     string  `json:"kd_satker"`
-	NamaSatker   string  `json:"nama_satker"`
+	KdKro        int64   `json:"kd_kro"`
+	KdKroStr     string  `json:"kd_kro_str"`
+	NamaKro      string  `json:"nama_kro"`
+	PaguKro      float64 `json:"pagu_kro"`
+	TahunAnggaran int64  `json:"tahun_anggaran"`
+	KdSatker     int64   `json:"kd_satker"`
 	KdKlpd       string  `json:"kd_klpd"`
 	NamaKlpd     string  `json:"nama_klpd"`
-	JenisPengadaan string `json:"jenis_pengadaan"`
-	MetodePengadaan string `json:"metode_pengadaan"`
-	SumberDana   string  `json:"sumber_dana"`
-	TahunAnggaran string `json:"tahun_anggaran"`
-	CreatedDate  string  `json:"created_date"`
+	JenisKlpd    string  `json:"jenis_klpd"`
+	KdProgram    int64   `json:"kd_program"`
+	KdKegiatan   int64   `json:"kd_kegiatan"`
+	EventDate    string  `json:"_event_date"`
+	IsDeleted    bool    `json:"is_deleted"`
 }
 
 // List handles GET /api/v1/rup
@@ -67,25 +67,26 @@ func (h *RUPHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build query - adjust table name based on your actual BigQuery dataset
+	// Build query for rup_kromaster table
 	query := fmt.Sprintf(`
 		SELECT
-			kd_rup,
-			nama_paket,
-			pagu,
+			kd_kro,
+			kd_kro_str,
+			nama_kro,
+			pagu_kro,
 			tahun_anggaran,
 			kd_satker,
-			nama_satker,
 			kd_klpd,
 			nama_klpd,
-			jenis_pengadaan,
-			metode_pengadaan,
-			sumber_dana,
-			FORMAT_TIMESTAMP('%%Y-%%m-%%dT%%H:%%M:%%S', created_date) as created_date
-		FROM %s.rup_data
-		ORDER BY created_date DESC
+			jenis_klpd,
+			kd_program,
+			kd_kegiatan,
+			_event_date,
+			is_deleted
+		FROM %s.rup_kromaster
+		ORDER BY _event_date DESC
 		LIMIT %d OFFSET %d
-	`, "`lkpp-dataset`", limit, offset) // Replace with actual dataset name
+	`, "`gtp-data-prod.layer_isb`", limit, offset)
 
 	results, err := h.bigquery.Query(r.Context(), query)
 	if err != nil {
@@ -95,7 +96,7 @@ func (h *RUPHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Also get total count for pagination
-	countQuery := fmt.Sprintf("SELECT COUNT(*) as total FROM `%s.rup_data`", "lkpp-dataset")
+	countQuery := fmt.Sprintf("SELECT COUNT(*) as total FROM `%s.rup_kromaster`", "gtp-data-prod.layer_isb")
 	countResult, err := h.bigquery.Query(r.Context(), countQuery)
 	if err != nil {
 		h.logger.Warn("Failed to get total count", zap.Error(err))
@@ -137,29 +138,24 @@ func (h *RUPHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`
 		SELECT
-			kd_rup,
-			nama_paket,
-			pagu,
+			kd_kro,
+			kd_kro_str,
+			kd_kro_lokal,
+			nama_kro,
+			pagu_kro,
 			tahun_anggaran,
 			kd_satker,
-			nama_satker,
 			kd_klpd,
 			nama_klpd,
-			jenis_pengadaan,
-			metode_pengadaan,
-			sumber_dana,
-			lokasi,
-			awal_pengadaan,
-			akhir_pengadaan,
-			awal_pelaksanaan,
-			akhir_pelaksanaan,
-			spesifikasi,
-			FORMAT_TIMESTAMP('%%Y-%%m-%%dT%%H:%%M:%%S', created_date) as created_date,
-			FORMAT_TIMESTAMP('%%Y-%%m-%%dT%%H:%%M:%%S', updated_date) as updated_date
-		FROM %s.rup_data
-		WHERE kd_rup = '%s'
+			jenis_klpd,
+			kd_program,
+			kd_kegiatan,
+			_event_date,
+			is_deleted
+		FROM %s.rup_kromaster
+		WHERE kd_kro_str = '%s'
 		LIMIT 1
-	`, "`lkpp-dataset`", id) // Replace with actual dataset name
+	`, "`gtp-data-prod.layer_isb`", id)
 
 	results, err := h.bigquery.Query(r.Context(), query)
 	if err != nil {
@@ -211,27 +207,29 @@ func (h *RUPHandler) Search(w http.ResponseWriter, r *http.Request) {
 	if req.Keyword != "" {
 		keyword := strings.ReplaceAll(req.Keyword, "'", "''")
 		conditions = append(conditions, fmt.Sprintf(
-			"(LOWER(nama_paket) LIKE LOWER('%%%s%%') OR LOWER(spesifikasi) LIKE LOWER('%%%s%%'))",
+			"(LOWER(nama_kro) LIKE LOWER('%%%s%%') OR LOWER(nama_klpd) LIKE LOWER('%%%s%%'))",
 			keyword, keyword,
 		))
 	}
 
 	if req.Tahun != "" {
-		conditions = append(conditions, fmt.Sprintf("tahun_anggaran = '%s'",
+		// tahun_anggaran is INT64 in BigQuery
+		conditions = append(conditions, fmt.Sprintf("tahun_anggaran = %s",
 			strings.ReplaceAll(req.Tahun, "'", "''")))
 	}
 
 	if req.KdSatker != "" {
-		conditions = append(conditions, fmt.Sprintf("kd_satker = '%s'",
+		// kd_satker is INT64 in BigQuery
+		conditions = append(conditions, fmt.Sprintf("kd_satker = %s",
 			strings.ReplaceAll(req.KdSatker, "'", "''")))
 	}
 
 	if req.MinPagu > 0 {
-		conditions = append(conditions, fmt.Sprintf("pagu >= %f", req.MinPagu))
+		conditions = append(conditions, fmt.Sprintf("pagu_kro >= %f", req.MinPagu))
 	}
 
 	if req.MaxPagu > 0 {
-		conditions = append(conditions, fmt.Sprintf("pagu <= %f", req.MaxPagu))
+		conditions = append(conditions, fmt.Sprintf("pagu_kro <= %f", req.MaxPagu))
 	}
 
 	whereClause := ""
@@ -241,23 +239,24 @@ func (h *RUPHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	query := fmt.Sprintf(`
 		SELECT
-			kd_rup,
-			nama_paket,
-			pagu,
+			kd_kro,
+			kd_kro_str,
+			nama_kro,
+			pagu_kro,
 			tahun_anggaran,
 			kd_satker,
-			nama_satker,
 			kd_klpd,
 			nama_klpd,
-			jenis_pengadaan,
-			metode_pengadaan,
-			sumber_dana,
-			FORMAT_TIMESTAMP('%%Y-%%m-%%dT%%H:%%M:%%S', created_date) as created_date
-		FROM %s.rup_data
+			jenis_klpd,
+			kd_program,
+			kd_kegiatan,
+			_event_date,
+			is_deleted
+		FROM %s.rup_kromaster
 		%s
-		ORDER BY created_date DESC
+		ORDER BY _event_date DESC
 		LIMIT %d OFFSET %d
-	`, "`lkpp-dataset`", whereClause, req.Limit, req.Offset)
+	`, "`gtp-data-prod.layer_isb`", whereClause, req.Limit, req.Offset)
 
 	results, err := h.bigquery.Query(r.Context(), query)
 	if err != nil {
@@ -270,7 +269,7 @@ func (h *RUPHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	// Get total count for pagination
 	countQuery := fmt.Sprintf(
-		"SELECT COUNT(*) as total FROM `lkpp-dataset`.rup_data %s",
+		"SELECT COUNT(*) as total FROM `gtp-data-prod.layer_isb`.rup_kromaster %s",
 		whereClause,
 	)
 
