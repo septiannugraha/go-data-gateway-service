@@ -5,15 +5,16 @@ info:
     Production-ready API gateway service for querying Dremio/Iceberg and BigQuery data sources.
 
     ## Features
-    - Apache Arrow Flight SQL for high-performance data transfer
+    - Apache Arrow Flight SQL v18 for high-performance data transfer
     - REST API fallback for compatibility
     - Redis caching with 5-minute TTL
     - Comprehensive logging and monitoring
     - Rate limiting and authentication
+    - Cost-safe queries with mandatory LIMIT clauses
 
     ## Data Sources
     - **Dremio/Iceberg**: Tender data from data lake
-    - **BigQuery**: RUP (Rencana Umum Pengadaan) data
+    - **BigQuery**: RUP KRO Master data from `gtp-data-prod.layer_isb.rup_kromaster`
   version: 2.0.0
   contact:
     name: API Support
@@ -267,9 +268,10 @@ paths:
     get:
       tags:
         - RUP
-      summary: List RUP data
+      summary: List RUP KRO Master data
       description: |
-        Get paginated list of RUP (Rencana Umum Pengadaan) from BigQuery.
+        Get paginated list of RUP KRO Master data from BigQuery table `layer_isb.rup_kromaster`.
+        All queries include LIMIT for cost safety.
         Note: Requires BigQuery to be configured with valid credentials.
       parameters:
         - name: limit
@@ -305,16 +307,16 @@ paths:
     get:
       tags:
         - RUP
-      summary: Get RUP by ID
-      description: Get detailed RUP information by ID
+      summary: Get RUP by KRO String ID
+      description: Get detailed RUP information by kd_kro_str (KRO String ID)
       parameters:
         - name: id
           in: path
           required: true
-          description: RUP ID
+          description: RUP KRO String ID
           schema:
             type: string
-            example: "RUP123456"
+            example: "EBA"
       responses:
         '200':
           description: RUP details
@@ -335,8 +337,11 @@ paths:
     post:
       tags:
         - RUP
-      summary: Search RUP data
-      description: Search RUP with multiple filter options
+      summary: Search RUP KRO Master data
+      description: |
+        Search RUP KRO Master data with multiple filter options.
+        Searches in nama_kro and nama_klpd fields for keyword matching.
+        All numeric fields (tahun_anggaran, kd_satker) are INT64 in BigQuery.
       requestBody:
         required: true
         content:
@@ -346,24 +351,24 @@ paths:
               properties:
                 keyword:
                   type: string
-                  description: Search in nama_paket and spesifikasi
-                  example: "pembangunan"
+                  description: Search in nama_kro and nama_klpd fields
+                  example: "layanan"
                 tahun:
                   type: string
-                  description: Budget year
-                  example: "2024"
+                  description: Budget year (will be converted to INT64)
+                  example: "2023"
                 kd_satker:
                   type: string
-                  description: Satker code
-                  example: "12345"
+                  description: Satker code (will be converted to INT64)
+                  example: "181524"
                 min_pagu:
                   type: number
-                  description: Minimum budget
+                  description: Minimum pagu_kro value
                   example: 1000000000
                 max_pagu:
                   type: number
-                  description: Maximum budget
-                  example: 10000000000
+                  description: Maximum pagu_kro value
+                  example: 5000000000
                 limit:
                   type: integer
                   minimum: 1
@@ -529,42 +534,56 @@ components:
     RUPItem:
       type: object
       properties:
-        kd_rup:
+        kd_kro:
+          type: integer
+          format: int64
+          example: 1178906
+        kd_kro_str:
           type: string
-          example: "RUP123456"
-        nama_paket:
+          example: "EBA"
+        kd_kro_lokal:
+          type: integer
+          format: int64
+          example: 96
+        nama_kro:
           type: string
-          example: "Pembangunan Sistem Informasi"
-        pagu:
+          example: "Layanan Dukungan Manajemen Internal"
+        pagu_kro:
           type: number
-          example: 5000000000
+          format: float
+          example: 4081169000
         tahun_anggaran:
-          type: string
-          example: "2024"
+          type: integer
+          format: int64
+          example: 2023
         kd_satker:
-          type: string
-          example: "12345"
-        nama_satker:
-          type: string
-          example: "Dinas Komunikasi dan Informatika"
+          type: integer
+          format: int64
+          example: 181524
         kd_klpd:
           type: string
-          example: "K001"
+          example: "L11"
         nama_klpd:
           type: string
-          example: "Pemerintah Provinsi DKI Jakarta"
-        jenis_pengadaan:
+          example: "Badan Perlindungan Pekerja Migran Indonesia"
+        jenis_klpd:
           type: string
-          example: "Jasa Lainnya"
-        metode_pengadaan:
+          example: "LEMBAGA"
+        kd_program:
+          type: integer
+          format: int64
+          example: 2106974
+        kd_kegiatan:
+          type: integer
+          format: int64
+          example: 10720203
+        _event_date:
           type: string
-          example: "Tender"
-        sumber_dana:
-          type: string
-          example: "APBD"
-        created_date:
-          type: string
-          format: date-time
+          format: date
+          example: "2025-09-19"
+        is_deleted:
+          type: boolean
+          example: false
 
     RUPListResponse:
       allOf:
