@@ -57,7 +57,10 @@ func (c *BigQueryClient) Query(ctx context.Context, sqlQuery string) ([]map[stri
 
 	// Create query
 	q := c.client.Query(sqlQuery)
-	q.DefaultDatasetID = c.config.DatasetID
+	// Only set default dataset if configured and query doesn't contain fully qualified table names
+	if c.config.DatasetID != "" && c.config.DatasetID != "your-dataset-id" {
+		q.DefaultDatasetID = c.config.DatasetID
+	}
 
 	// Run query
 	it, err := q.Read(ctx)
@@ -112,11 +115,7 @@ func (c *BigQueryClient) ExecuteQuery(ctx context.Context, query string) (interf
 		return nil, err
 	}
 
-	return map[string]interface{}{
-		"data":   results,
-		"count":  len(results),
-		"source": "bigquery",
-	}, nil
+	return results, nil
 }
 
 // QueryWithParams executes a parameterized query

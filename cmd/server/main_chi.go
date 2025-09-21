@@ -185,7 +185,16 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger) map[string]da
 		}
 	}
 
-	// Add other data sources here (BigQuery, MySQL, etc.)
+	// Initialize BigQuery client
+	if cfg.BigQuery.ProjectID != "" {
+		bigQueryWrapper, err := datasource.NewBigQueryWrapper(cfg.BigQuery, logger)
+		if err != nil {
+			logger.Warn("BigQuery client initialization failed", zap.Error(err))
+		} else {
+			sources["BIGQUERY"] = bigQueryWrapper
+			logger.Info("BigQuery client initialized", zap.String("project", cfg.BigQuery.ProjectID))
+		}
+	}
 
 	return sources
 }
