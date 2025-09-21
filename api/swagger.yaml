@@ -1,0 +1,739 @@
+openapi: 3.0.3
+info:
+  title: Go Data Gateway API
+  description: |
+    Production-ready API gateway service for querying Dremio/Iceberg and BigQuery data sources.
+
+    ## Features
+    - Apache Arrow Flight SQL for high-performance data transfer
+    - REST API fallback for compatibility
+    - Redis caching with 5-minute TTL
+    - Comprehensive logging and monitoring
+    - Rate limiting and authentication
+
+    ## Data Sources
+    - **Dremio/Iceberg**: Tender data from data lake
+    - **BigQuery**: RUP (Rencana Umum Pengadaan) data
+  version: 2.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+  - url: http://localhost:8080
+    description: Docker container
+  - url: https://api.example.com
+    description: Production server (behind Fusio)
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Query
+    description: Generic SQL query endpoints
+  - name: Tender
+    description: Tender data from Dremio/Iceberg
+  - name: RUP
+    description: RUP data from BigQuery
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the service is healthy
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: go-data-gateway
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: 2.0.0
+
+  /ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Check if the service and its dependencies are ready
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  checks:
+                    type: object
+                    properties:
+                      dremio:
+                        type: string
+                        example: healthy
+                      bigquery:
+                        type: string
+                        example: healthy
+
+  /api/v1/query:
+    post:
+      tags:
+        - Query
+      summary: Execute SQL query
+      description: |
+        Execute a read-only SQL query against specified data source.
+        Queries are cached for 5 minutes to improve performance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source
+                - sql
+              properties:
+                source:
+                  type: string
+                  enum: [DATAWAREHOUSE, BIGQUERY]
+                  description: Data source to query
+                  example: DATAWAREHOUSE
+                sql:
+                  type: string
+                  description: SQL query (read-only)
+                  example: SELECT * FROM nessie_iceberg.tender_data LIMIT 10
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/tender:
+    get:
+      tags:
+        - Tender
+      summary: List tenders
+      description: Get paginated list of tenders from Dremio/Iceberg
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: List of tenders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenderListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/tender/{id}:
+    get:
+      tags:
+        - Tender
+      summary: Get tender by ID
+      description: Get detailed information about a specific tender
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Tender ID
+          schema:
+            type: string
+            example: "80210078585001"
+      responses:
+        '200':
+          description: Tender details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenderDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/tender/search:
+    post:
+      tags:
+        - Tender
+      summary: Search tenders
+      description: Search tenders with filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+                  description: Search keyword
+                  example: "infrastruktur"
+                tahun_anggaran:
+                  type: string
+                  description: Budget year
+                  example: "2024"
+                status:
+                  type: string
+                  description: Tender status
+                  example: "Selesai"
+                min_nilai:
+                  type: number
+                  description: Minimum contract value
+                  example: 1000000000
+                max_nilai:
+                  type: number
+                  description: Maximum contract value
+                  example: 50000000000
+                provinsi:
+                  type: string
+                  description: Province
+                  example: "DKI Jakarta"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 100
+                offset:
+                  type: integer
+                  minimum: 0
+                  default: 0
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenderSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/rup:
+    get:
+      tags:
+        - RUP
+      summary: List RUP data
+      description: |
+        Get paginated list of RUP (Rencana Umum Pengadaan) from BigQuery.
+        Note: Requires BigQuery to be configured with valid credentials.
+      parameters:
+        - name: limit
+          in: query
+          description: Number of items to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          description: Number of items to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of RUP data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RUPListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/rup/{id}:
+    get:
+      tags:
+        - RUP
+      summary: Get RUP by ID
+      description: Get detailed RUP information by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: RUP ID
+          schema:
+            type: string
+            example: "RUP123456"
+      responses:
+        '200':
+          description: RUP details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RUPDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/rup/search:
+    post:
+      tags:
+        - RUP
+      summary: Search RUP data
+      description: Search RUP with multiple filter options
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+                  description: Search in nama_paket and spesifikasi
+                  example: "pembangunan"
+                tahun:
+                  type: string
+                  description: Budget year
+                  example: "2024"
+                kd_satker:
+                  type: string
+                  description: Satker code
+                  example: "12345"
+                min_pagu:
+                  type: number
+                  description: Minimum budget
+                  example: 1000000000
+                max_pagu:
+                  type: number
+                  description: Maximum budget
+                  example: 10000000000
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 100
+                offset:
+                  type: integer
+                  minimum: 0
+                  default: 0
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RUPSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: string
+        meta:
+          type: object
+          properties:
+            page:
+              type: integer
+            per_page:
+              type: integer
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    QueryResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    type: object
+                count:
+                  type: integer
+                source:
+                  type: string
+                query_time_ms:
+                  type: integer
+                cache_hit:
+                  type: boolean
+
+    TenderItem:
+      type: object
+      properties:
+        tender_id:
+          type: string
+          example: "80210078585001"
+        nama_paket:
+          type: string
+          example: "Pengadaan Infrastruktur Teknologi Informasi"
+        nama_kl:
+          type: string
+          example: "Kementerian Komunikasi dan Informatika"
+        satuan_kerja:
+          type: string
+          example: "Sekretariat Jenderal"
+        jenis_pengadaan:
+          type: string
+          example: "Barang"
+        metode_pengadaan:
+          type: string
+          example: "Tender Terbuka"
+        tahun_anggaran:
+          type: string
+          example: "2024"
+        nilai_pagu:
+          type: number
+          example: 16000000000
+        nilai_kontrak:
+          type: number
+          example: 15000000000
+        provinsi:
+          type: string
+          example: "DKI Jakarta"
+        status_tender:
+          type: string
+          example: "Selesai"
+        tanggal_buat_paket:
+          type: string
+          format: date-time
+        tanggal_pengumuman:
+          type: string
+          format: date-time
+
+    TenderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TenderItem'
+
+    TenderDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TenderItem'
+
+    TenderSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TenderItem'
+                filtered:
+                  type: boolean
+                total:
+                  type: integer
+
+    RUPItem:
+      type: object
+      properties:
+        kd_rup:
+          type: string
+          example: "RUP123456"
+        nama_paket:
+          type: string
+          example: "Pembangunan Sistem Informasi"
+        pagu:
+          type: number
+          example: 5000000000
+        tahun_anggaran:
+          type: string
+          example: "2024"
+        kd_satker:
+          type: string
+          example: "12345"
+        nama_satker:
+          type: string
+          example: "Dinas Komunikasi dan Informatika"
+        kd_klpd:
+          type: string
+          example: "K001"
+        nama_klpd:
+          type: string
+          example: "Pemerintah Provinsi DKI Jakarta"
+        jenis_pengadaan:
+          type: string
+          example: "Jasa Lainnya"
+        metode_pengadaan:
+          type: string
+          example: "Tender"
+        sumber_dana:
+          type: string
+          example: "APBD"
+        created_date:
+          type: string
+          format: date-time
+
+    RUPListResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RUPItem'
+
+    RUPDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              allOf:
+                - $ref: '#/components/schemas/RUPItem'
+                - type: object
+                  properties:
+                    lokasi:
+                      type: string
+                    awal_pengadaan:
+                      type: string
+                      format: date
+                    akhir_pengadaan:
+                      type: string
+                      format: date
+                    awal_pelaksanaan:
+                      type: string
+                      format: date
+                    akhir_pelaksanaan:
+                      type: string
+                      format: date
+                    spesifikasi:
+                      type: string
+                    updated_date:
+                      type: string
+                      format: date-time
+
+    RUPSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RUPItem'
+                filtered:
+                  type: boolean
+                filters_applied:
+                  type: object
+                  properties:
+                    keyword:
+                      type: string
+                    tahun:
+                      type: string
+                    kd_satker:
+                      type: string
+                    min_pagu:
+                      type: number
+                    max_pagu:
+                      type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "BAD_REQUEST"
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: string
+              example: "The 'limit' parameter must be between 1 and 1000"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "BAD_REQUEST"
+              message: "Invalid request body"
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "UNAUTHORIZED"
+              message: "Invalid API key"
+
+    Forbidden:
+      description: Forbidden - Query contains write operations
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "FORBIDDEN"
+              message: "Only SELECT queries are allowed"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "RATE_LIMITED"
+              message: "Rate limit exceeded. Please try again later"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An internal error occurred"
+
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "SERVICE_UNAVAILABLE"
+              message: "Data source not available"

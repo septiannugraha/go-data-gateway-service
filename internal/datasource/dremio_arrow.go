@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/apache/arrow/go/v13/arrow/flight/flightsql"
-	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/flight"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	pb "github.com/apache/arrow-go/v18/arrow/flight/gen/flight"
 	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -22,12 +23,12 @@ import (
 
 // DremioArrowClient implements DataSource using Arrow Flight SQL
 type DremioArrowClient struct {
-	client   *flightsql.Client
-	conn     *grpc.ClientConn
+	client   flight.Client
 	config   *DremioConfig
 	logger   *zap.Logger
 	cache    *cache.Cache
 	memAlloc memory.Allocator
+	ctx      context.Context
 }
 
 // DremioConfig holds Dremio connection configuration
@@ -43,6 +44,8 @@ type DremioConfig struct {
 
 // NewDremioArrowClient creates a new Arrow Flight SQL client for Dremio
 func NewDremioArrowClient(cfg *DremioConfig, logger *zap.Logger) (*DremioArrowClient, error) {
+	ctx := context.Background()
+
 	// Build connection address
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
@@ -55,54 +58,30 @@ func NewDremioArrowClient(cfg *DremioConfig, logger *zap.Logger) (*DremioArrowCl
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	// First create the gRPC connection
-	conn, err := grpc.Dial(addr, dialOpts...)
+	// Create raw Flight client (like colleague's implementation)
+	flightClient, err := flight.NewClientWithMiddleware(addr, nil, nil, dialOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Dremio: %w", err)
-	}
-
-	// Create Arrow Flight SQL client with the connection
-	flightClient, err := flightsql.NewClient(addr, nil, nil, dialOpts...)
-	if err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("failed to create flight SQL client: %w", err)
+		return nil, fmt.Errorf("failed to create flight client: %w", err)
 	}
 
 	client := &DremioArrowClient{
 		client:   flightClient,
-		conn:     conn,
 		config:   cfg,
 		logger:   logger,
 		cache:    cache.New(5*time.Minute, 10*time.Minute),
 		memAlloc: memory.NewGoAllocator(),
+		ctx:      ctx,
 	}
 
-	// Authenticate if credentials are provided
+	// Set up authentication context if credentials provided
 	if cfg.Username != "" && cfg.Password != "" {
-		if err := client.authenticate(); err != nil {
-			return nil, fmt.Errorf("authentication failed: %w", err)
-		}
+		auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", cfg.Username, cfg.Password)))
+		client.ctx = metadata.AppendToOutgoingContext(client.ctx, "authorization", "Basic "+auth)
+		logger.Info("Authentication context set up", zap.String("user", cfg.Username))
 	}
 
-	logger.Info("Dremio Arrow Flight SQL client initialized", zap.String("host", cfg.Host))
+	logger.Info("Dremio Arrow Flight client initialized", zap.String("host", cfg.Host), zap.Int("port", cfg.Port))
 	return client, nil
-}
-
-// authenticate performs authentication with Dremio
-func (d *DremioArrowClient) authenticate() error {
-	ctx := context.Background()
-
-	// Create authentication context with username/password
-	ctx = d.getAuthContext(ctx)
-
-	// Test authentication with a simple query
-	_, err := d.client.Execute(ctx, "SELECT 1", nil)
-	if err != nil {
-		return fmt.Errorf("authentication handshake failed: %w", err)
-	}
-
-	d.logger.Info("Authentication successful")
-	return nil
 }
 
 // basicAuth creates a basic auth string
@@ -111,7 +90,7 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-// ExecuteQuery executes a SQL query using Arrow Flight SQL
+// ExecuteQuery executes a SQL query using Arrow Flight
 func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts *QueryOptions) (*QueryResult, error) {
 	// Validate query is read-only
 	if !isReadOnlySQL(query) {
@@ -128,34 +107,43 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 	}
 
 	start := time.Now()
-	d.logger.Info("Executing Arrow Flight SQL query", zap.String("sql", query))
+	d.logger.Info("Executing Arrow Flight query", zap.String("sql", query))
 
-	// Add authentication to context
-	ctx = d.getAuthContext(ctx)
-
-	// Execute query
-	info, err := d.client.Execute(ctx, query, nil)
-	if err != nil {
-		return nil, fmt.Errorf("query execution failed: %w", err)
+	// Create flight descriptor for SQL query (raw Flight protocol)
+	desc := &pb.FlightDescriptor{
+		Type: pb.FlightDescriptor_CMD,
+		Cmd:  []byte(query),
 	}
 
-	// Get the endpoint containing the result
-	if len(info.Endpoint) == 0 {
+	// Get flight info for the query
+	info, err := d.client.GetFlightInfo(d.ctx, desc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flight info: %w", err)
+	}
+
+	// Check if we have endpoints
+	if len(info.GetEndpoint()) == 0 {
 		return nil, fmt.Errorf("no endpoints returned")
 	}
 
 	// Fetch results from the first endpoint
-	endpoint := info.Endpoint[0]
-	reader, err := d.client.DoGet(ctx, endpoint.GetTicket())
+	endpoint := info.GetEndpoint()[0]
+	stream, err := d.client.DoGet(d.ctx, endpoint.GetTicket())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get results: %w", err)
+		return nil, fmt.Errorf("failed to get data stream: %w", err)
+	}
+
+	// Create record reader from stream
+	reader, err := flight.NewRecordReader(stream)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create record reader: %w", err)
 	}
 	defer reader.Release()
 
 	// Convert Arrow records to map format
 	var results []map[string]interface{}
 	for reader.Next() {
-		record := reader.Record()
+		record := reader.RecordBatch()
 		results = append(results, d.recordToMaps(record)...)
 		record.Release()
 	}
@@ -186,8 +174,8 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 	return result, nil
 }
 
-// recordToMaps converts Arrow record to slice of maps
-func (d *DremioArrowClient) recordToMaps(record arrow.Record) []map[string]interface{} {
+// recordToMaps converts Arrow RecordBatch to slice of maps
+func (d *DremioArrowClient) recordToMaps(record arrow.RecordBatch) []map[string]interface{} {
 	var results []map[string]interface{}
 	numRows := int(record.NumRows())
 	schema := record.Schema()
@@ -281,18 +269,9 @@ func (d *DremioArrowClient) getAuthContext(ctx context.Context) context.Context 
 	return ctx
 }
 
-// Close closes the Arrow Flight SQL client and connection
+// Close closes the Arrow Flight client
 func (d *DremioArrowClient) Close() error {
-	var err error
-	if d.client != nil {
-		err = d.client.Close()
-	}
-	if d.conn != nil {
-		if connErr := d.conn.Close(); connErr != nil && err == nil {
-			err = connErr
-		}
-	}
-	return err
+	return d.client.Close()
 }
 
 // isReadOnlySQL validates that a SQL query is read-only
