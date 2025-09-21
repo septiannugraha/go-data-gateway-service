@@ -58,5 +58,26 @@ lkpp-data-lake/
 CLAUDE.md
 .claude/
 
+# Test scripts and internal documentation
+test_*.sh
+*.test.sh
+LESSONS_LEARNED.md
+ARROW_FLIGHT_ANALYSIS.md
+ROOT_CLAUDE_SUGGESTIONS.md
+*_NOTES.md
+*_TODO.md
+
+# Compiled binaries
+server-chi
+test-server
+go-data-gateway-chi
+
+# Temporary and backup files
+*.tar.gz
+*.tar.gz.*
+nvim-linux64/
+*.backup
+*.tmp
+
 # Docker volumes
 data/
