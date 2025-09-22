@@ -21,6 +21,9 @@ go.work
 .env
 .env.local
 .env.*.local
+.env.docker
+!.env.example
+!.env.docker.example
 
 # IDE specific files
 .idea/
