@@ -14,6 +14,7 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
+	"go-data-gateway/internal/cache"
 	"go-data-gateway/internal/clients"
 	"go-data-gateway/internal/config"
 	"go-data-gateway/internal/datasource"
@@ -40,8 +41,14 @@ func main() {
 		zap.String("port", cfg.Port),
 		zap.String("env", cfg.Environment))
 
-	// Initialize data sources
-	dataSources := initializeDataSources(cfg, logger)
+	// Initialize cache
+	cacheService := initializeCache(cfg, logger)
+	if cacheService != nil {
+		defer cacheService.Close()
+	}
+
+	// Initialize data sources with caching
+	dataSources := initializeDataSources(cfg, logger, cacheService)
 	defer closeDataSources(dataSources)
 
 	// Create router with Chi
@@ -61,6 +68,9 @@ func main() {
 
 	// Metrics endpoint
 	r.Handle("/metrics", custommw.PrometheusHandler())
+
+	// Cache stats endpoint (no auth for monitoring)
+	r.Get("/cache/stats", getCacheStats(cacheService, dataSources))
 
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
@@ -141,8 +151,24 @@ func main() {
 	logger.Info("Server stopped gracefully")
 }
 
-// initializeDataSources creates all configured data sources
-func initializeDataSources(cfg *config.Config, logger *zap.Logger) map[string]datasource.DataSource {
+// initializeCache creates cache service
+func initializeCache(cfg *config.Config, logger *zap.Logger) cache.Cache {
+	if cfg.Redis.Host == "" {
+		logger.Info("Redis not configured, using no-op cache")
+		return &cache.NoOpCache{}
+	}
+
+	cacheService, err := cache.NewRedisCache(cfg.Redis, logger)
+	if err != nil {
+		logger.Warn("Failed to initialize Redis cache, using no-op cache", zap.Error(err))
+		return &cache.NoOpCache{}
+	}
+
+	return cacheService
+}
+
+// initializeDataSources creates all configured data sources with caching
+func initializeDataSources(cfg *config.Config, logger *zap.Logger, cacheService cache.Cache) map[string]datasource.DataSource {
 	sources := make(map[string]datasource.DataSource)
 
 	// Initialize Dremio client
@@ -164,8 +190,9 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger) map[string]da
 			if err != nil {
 				logger.Warn("Arrow Flight SQL initialization failed", zap.Error(err))
 			} else {
-				sources["dremio"] = arrowClient
-				logger.Info("Dremio Arrow Flight SQL client initialized")
+				// Wrap with caching
+				sources["dremio"] = cache.NewCachedDataSource(arrowClient, cacheService, logger)
+				logger.Info("Dremio Arrow Flight SQL client initialized with caching")
 			}
 		} else {
 			// Use REST client (default)
@@ -179,8 +206,9 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger) map[string]da
 			if err != nil {
 				logger.Warn("Dremio REST client initialization failed", zap.Error(err))
 			} else {
-				sources["dremio"] = dremioClient
-				logger.Info("Dremio REST client initialized")
+				// Wrap with caching
+				sources["dremio"] = cache.NewCachedDataSource(dremioClient, cacheService, logger)
+				logger.Info("Dremio REST client initialized with caching")
 			}
 		}
 	}
@@ -191,8 +219,9 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger) map[string]da
 		if err != nil {
 			logger.Warn("BigQuery client initialization failed", zap.Error(err))
 		} else {
-			sources["BIGQUERY"] = bigQueryWrapper
-			logger.Info("BigQuery client initialized", zap.String("project", cfg.BigQuery.ProjectID))
+			// Wrap with caching
+			sources["BIGQUERY"] = cache.NewCachedDataSource(bigQueryWrapper, cacheService, logger)
+			logger.Info("BigQuery client initialized with caching", zap.String("project", cfg.BigQuery.ProjectID))
 		}
 	}
 
@@ -207,6 +236,33 @@ func closeDataSources(sources map[string]datasource.DataSource) {
 				zap.String("name", name),
 				zap.Error(err))
 		}
+	}
+}
+
+// getCacheStats returns cache statistics
+func getCacheStats(cacheService cache.Cache, dataSources map[string]datasource.DataSource) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		stats := make(map[string]interface{})
+
+		// Get cache service stats
+		if cacheService != nil {
+			cacheStats, err := cacheService.Stats(r.Context())
+			if err == nil {
+				stats["cache"] = cacheStats
+			}
+		}
+
+		// Get metrics from each cached data source
+		sourceMetrics := make(map[string]interface{})
+		for name, source := range dataSources {
+			if cached, ok := source.(*cache.CachedDataSource); ok {
+				sourceMetrics[name] = cached.GetMetrics()
+			}
+		}
+		stats["sources"] = sourceMetrics
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(stats)
 	}
 }
 
