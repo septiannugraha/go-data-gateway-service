@@ -4,11 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"go-data-gateway/internal/datasource"
 	"go.uber.org/zap"
 )
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 func main() {
 	// Create logger
@@ -16,11 +24,12 @@ func main() {
 	defer logger.Sync()
 
 	// Configure Dremio Arrow Flight connection
+	// WARNING: Never hardcode credentials! Use environment variables
 	config := &datasource.DremioConfig{
-		Host:     "localhost",
+		Host:     getEnv("DREMIO_HOST", "localhost"),
 		Port:     31010, // Arrow Flight port
-		Username: "septiannugraha",
-		Password: "?uJ*u2a@u!@f2e]",
+		Username: getEnv("DREMIO_USERNAME", ""),
+		Password: getEnv("DREMIO_PASSWORD", ""),
 		UseTLS:   false,
 		Project:  "nessie_iceberg",
 	}
