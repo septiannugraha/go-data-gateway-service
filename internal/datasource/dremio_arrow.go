@@ -11,8 +11,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/flight"
-	"github.com/apache/arrow-go/v18/arrow/memory"
 	pb "github.com/apache/arrow-go/v18/arrow/flight/gen/flight"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/patrickmn/go-cache"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -33,13 +33,13 @@ type DremioArrowClient struct {
 
 // DremioConfig holds Dremio connection configuration
 type DremioConfig struct {
-	Host          string
-	Port          int  // Arrow Flight port (31010)
-	Username      string
-	Password      string
-	Token         string
-	UseTLS        bool
-	Project       string // Optional: default project/space in Dremio
+	Host     string
+	Port     int // Arrow Flight port (31010)
+	Username string
+	Password string
+	Token    string
+	UseTLS   bool
+	Project  string // Optional: default project/space in Dremio
 }
 
 // NewDremioArrowClient creates a new Arrow Flight SQL client for Dremio
@@ -143,9 +143,11 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 	// Convert Arrow records to map format
 	var results []map[string]interface{}
 	for reader.Next() {
-		record := reader.RecordBatch()
-		results = append(results, d.recordToMaps(record)...)
-		record.Release()
+		record := reader.Record()
+		if record != nil {
+			results = append(results, d.recordToMaps(record)...)
+			record.Release()
+		}
 	}
 
 	if reader.Err() != nil {
@@ -174,8 +176,8 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 	return result, nil
 }
 
-// recordToMaps converts Arrow RecordBatch to slice of maps
-func (d *DremioArrowClient) recordToMaps(record arrow.RecordBatch) []map[string]interface{} {
+// recordToMaps converts Arrow Record to slice of maps
+func (d *DremioArrowClient) recordToMaps(record arrow.Record) []map[string]interface{} {
 	var results []map[string]interface{}
 	numRows := int(record.NumRows())
 	schema := record.Schema()

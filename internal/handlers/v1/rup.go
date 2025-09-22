@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"go.uber.org/zap"
 	"go-data-gateway/internal/clients"
 	"go-data-gateway/internal/response"
+	"go.uber.org/zap"
 )
 
 // RUPHandler handles RUP (Rencana Umum Pengadaan) queries from BigQuery
@@ -28,19 +28,19 @@ func NewRUPHandler(bigquery *clients.BigQueryClient, logger *zap.Logger) *RUPHan
 
 // RUPResponse represents the response structure for RUP data from rup_kromaster
 type RUPResponse struct {
-	KdKro        int64   `json:"kd_kro"`
-	KdKroStr     string  `json:"kd_kro_str"`
-	NamaKro      string  `json:"nama_kro"`
-	PaguKro      float64 `json:"pagu_kro"`
-	TahunAnggaran int64  `json:"tahun_anggaran"`
-	KdSatker     int64   `json:"kd_satker"`
-	KdKlpd       string  `json:"kd_klpd"`
-	NamaKlpd     string  `json:"nama_klpd"`
-	JenisKlpd    string  `json:"jenis_klpd"`
-	KdProgram    int64   `json:"kd_program"`
-	KdKegiatan   int64   `json:"kd_kegiatan"`
-	EventDate    string  `json:"_event_date"`
-	IsDeleted    bool    `json:"is_deleted"`
+	KdKro         int64   `json:"kd_kro"`
+	KdKroStr      string  `json:"kd_kro_str"`
+	NamaKro       string  `json:"nama_kro"`
+	PaguKro       float64 `json:"pagu_kro"`
+	TahunAnggaran int64   `json:"tahun_anggaran"`
+	KdSatker      int64   `json:"kd_satker"`
+	KdKlpd        string  `json:"kd_klpd"`
+	NamaKlpd      string  `json:"nama_klpd"`
+	JenisKlpd     string  `json:"jenis_klpd"`
+	KdProgram     int64   `json:"kd_program"`
+	KdKegiatan    int64   `json:"kd_kegiatan"`
+	EventDate     string  `json:"_event_date"`
+	IsDeleted     bool    `json:"is_deleted"`
 }
 
 // List handles GET /api/v1/rup
@@ -182,13 +182,13 @@ func (h *RUPHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Keyword  string `json:"keyword"`
-		Tahun    string `json:"tahun"`
-		KdSatker string `json:"kd_satker"`
+		Keyword  string  `json:"keyword"`
+		Tahun    string  `json:"tahun"`
+		KdSatker string  `json:"kd_satker"`
 		MinPagu  float64 `json:"min_pagu"`
 		MaxPagu  float64 `json:"max_pagu"`
-		Limit    int    `json:"limit"`
-		Offset   int    `json:"offset"`
+		Limit    int     `json:"limit"`
+		Offset   int     `json:"offset"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
