@@ -27,7 +27,7 @@ func main() {
 	// SECURITY: Always use environment variables for credentials!
 	config := &datasource.DremioConfig{
 		Host:     getEnv("DREMIO_HOST", "localhost"),
-		Port:     32010, // Arrow Flight port
+		Port:     32010, // Arrow Flight port (32010 is the correct port)
 		Username: getEnv("DREMIO_USERNAME", ""),
 		Password: getEnv("DREMIO_PASSWORD", ""),
 		UseTLS:   false,
@@ -43,7 +43,7 @@ func main() {
 	logger.Info("Creating Arrow Flight SQL client...")
 	client, err := datasource.NewDremioArrowClient(config, logger)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Fatalf("Failed to create Arrow client: %v", err)
 	}
 	defer client.Close()
 
@@ -66,25 +66,59 @@ func main() {
 		zap.Int("rows", result.Count),
 		zap.Duration("query_time", result.QueryTime))
 
-	// Print results
-	fmt.Printf("\nQuery Results:\n")
-	fmt.Printf("Count: %d\n", result.Count)
-	fmt.Printf("Query Time: %s\n", result.QueryTime)
-	fmt.Printf("Data: %+v\n", result.Data)
+	// Display results
+	fmt.Printf("\n=== Query Results ===\n")
+	fmt.Printf("Rows returned: %d\n", result.Count)
+	fmt.Printf("Query time: %v\n", result.QueryTime)
+	fmt.Printf("Data: %+v\n\n", result.Data)
 
 	// Try a real table query if it exists
-	realQuery := `SELECT * FROM nessie_iceberg.tender LIMIT 5`
-	logger.Info("Trying real table query", zap.String("query", realQuery))
+	realQuery := `SELECT * FROM nessie_iceberg.tender_data LIMIT 5`
+	logger.Info("Testing real table query", zap.String("query", realQuery))
 
 	result, err = client.Query(ctx, realQuery, nil)
 	if err != nil {
 		logger.Warn("Real table query failed (table might not exist)", zap.Error(err))
+		// Try alternative table name
+		alternativeQuery := `SELECT * FROM nessie_iceberg.tender LIMIT 5`
+		logger.Info("Trying alternative table name", zap.String("query", alternativeQuery))
+
+		result, err = client.Query(ctx, alternativeQuery, nil)
+		if err != nil {
+			logger.Warn("Alternative query also failed", zap.Error(err))
+		} else {
+			displayResults(result, logger)
+		}
 	} else {
-		logger.Info("Real table query successful!",
-			zap.Int("rows", result.Count),
-			zap.Duration("query_time", result.QueryTime))
-		fmt.Printf("\nReal Table Results:\n")
-		fmt.Printf("Count: %d\n", result.Count)
-		fmt.Printf("First row: %+v\n", result.Data[0])
+		displayResults(result, logger)
+	}
+
+	logger.Info("Arrow Flight SQL test completed successfully!")
+}
+
+func displayResults(result *datasource.QueryResult, logger *zap.Logger) {
+	logger.Info("Real table query successful!",
+		zap.Int("rows", result.Count),
+		zap.Duration("query_time", result.QueryTime),
+		zap.String("source", string(result.Source)),
+		zap.Bool("cache_hit", result.CacheHit))
+
+	fmt.Printf("\n=== Real Table Results ===\n")
+	fmt.Printf("Count: %d\n", result.Count)
+	fmt.Printf("Query time: %v\n", result.QueryTime)
+	fmt.Printf("Source: %s\n", result.Source)
+	fmt.Printf("Cache hit: %v\n\n", result.CacheHit)
+
+	// Display first few rows
+	for i, row := range result.Data {
+		if i >= 3 {
+			fmt.Printf("... and %d more rows\n", len(result.Data)-3)
+			break
+		}
+		fmt.Printf("Row %d:\n", i+1)
+		for key, value := range row {
+			fmt.Printf("  %s: %v\n", key, value)
+		}
+		fmt.Println()
 	}
 }
