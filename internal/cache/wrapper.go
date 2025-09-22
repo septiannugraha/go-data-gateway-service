@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
 	"go-data-gateway/internal/datasource"
+	"go.uber.org/zap"
 )
 
 // CachedDataSource wraps a DataSource with caching

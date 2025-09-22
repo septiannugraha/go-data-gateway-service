@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
 	"go-data-gateway/internal/clients"
 	"go-data-gateway/internal/config"
+	"go.uber.org/zap"
 )
 
 // DremioRESTWrapper wraps the original DremioClient to implement DataSource interface

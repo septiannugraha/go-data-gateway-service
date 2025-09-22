@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
 	"go-data-gateway/internal/config"
+	"go.uber.org/zap"
 )
 
 // RedisCache implements caching using Redis

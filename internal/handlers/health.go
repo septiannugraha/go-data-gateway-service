@@ -9,7 +9,7 @@ import (
 
 func Health(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "healthy",
+		"status":  "healthy",
 		"service": "go-data-gateway",
 	})
 }

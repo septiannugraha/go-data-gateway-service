@@ -152,17 +152,17 @@ func (h *TenderHandler) Search(c *gin.Context) {
 	}
 
 	var request struct {
-		Keyword      string   `json:"keyword"`
-		MinValue     float64  `json:"min_value"`
-		MaxValue     float64  `json:"max_value"`
-		Status       []string `json:"status"`
-		Kategori     []string `json:"kategori"`
-		TahunAnggaran int     `json:"tahun_anggaran"`
-		Lokasi       string   `json:"lokasi"`
-		StartDate    string   `json:"start_date"`
-		EndDate      string   `json:"end_date"`
-		Limit        int      `json:"limit"`
-		Offset       int      `json:"offset"`
+		Keyword       string   `json:"keyword"`
+		MinValue      float64  `json:"min_value"`
+		MaxValue      float64  `json:"max_value"`
+		Status        []string `json:"status"`
+		Kategori      []string `json:"kategori"`
+		TahunAnggaran int      `json:"tahun_anggaran"`
+		Lokasi        string   `json:"lokasi"`
+		StartDate     string   `json:"start_date"`
+		EndDate       string   `json:"end_date"`
+		Limit         int      `json:"limit"`
+		Offset        int      `json:"offset"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -247,10 +247,10 @@ func (h *TenderHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":   results,
-		"count":  len(results),
-		"limit":  request.Limit,
-		"offset": request.Offset,
+		"data":    results,
+		"count":   len(results),
+		"limit":   request.Limit,
+		"offset":  request.Offset,
 		"filters": request,
 	})
 }

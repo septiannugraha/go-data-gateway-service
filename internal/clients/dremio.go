@@ -191,8 +191,8 @@ func (c *DremioClient) ExecuteQuery(ctx context.Context, query string) (interfac
 	}
 
 	return map[string]interface{}{
-		"data":  results,
-		"count": len(results),
+		"data":   results,
+		"count":  len(results),
 		"source": "dremio",
 	}, nil
 }

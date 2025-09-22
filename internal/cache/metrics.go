@@ -7,16 +7,16 @@ import (
 
 // Metrics tracks cache performance
 type Metrics struct {
-	mu          sync.RWMutex
-	Hits        int64
-	Misses      int64
-	Sets        int64
-	Deletes     int64
-	Errors      int64
-	TotalTime   time.Duration
-	HitTime     time.Duration
-	MissTime    time.Duration
-	LastReset   time.Time
+	mu        sync.RWMutex
+	Hits      int64
+	Misses    int64
+	Sets      int64
+	Deletes   int64
+	Errors    int64
+	TotalTime time.Duration
+	HitTime   time.Duration
+	MissTime  time.Duration
+	LastReset time.Time
 }
 
 // NewMetrics creates a new metrics tracker

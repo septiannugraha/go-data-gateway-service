@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
 	"go-data-gateway/internal/response"
+	"golang.org/x/time/rate"
 )
 
 // visitor holds rate limiter for each visitor
