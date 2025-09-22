@@ -1,132 +1,145 @@
 version: '3.8'
 
 services:
-  # Fusio API Gateway (public facing)
-  fusio-db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: fusio
-      MYSQL_USER: fusio
-      MYSQL_PASSWORD: fusio123
-    volumes:
-      - fusio_db_data:/var/lib/mysql
-    networks:
-      - api-network
-
-  fusio:
-    image: fusio/fusio:latest
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      FUSIO_PROJECT_KEY: "42eec18ffdbffc9fda6110dcc705d6ce"
-      FUSIO_URL: "http://localhost"
-      FUSIO_DB_NAME: "mysql://fusio:fusio123@fusio-db/fusio"
-      FUSIO_ENV: "prod"
-      # Configure backend to forward to our Go service
-      FUSIO_BACKEND_URL: "http://go-gateway:8080"
-    depends_on:
-      - fusio-db
-    networks:
-      - api-network
-
-  # Go Data Gateway Service
-  go-gateway:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      PORT: 8080
-      ENV: production
-
-      # API Keys for authentication between Fusio and Go service
-      API_KEYS: "demo-key-123,fusio-gateway-key,test-key-456"
-
-      # Rate limiting
-      RATE_LIMIT: 100
-
-      # Dremio configuration
-      DREMIO_HOST: ${DREMIO_HOST:-dremio}
-      DREMIO_PORT: ${DREMIO_PORT:-31010}
-      DREMIO_USERNAME: ${DREMIO_USERNAME}
-      DREMIO_PASSWORD: ${DREMIO_PASSWORD}
-
-      # BigQuery configuration
-      BIGQUERY_PROJECT_ID: ${BIGQUERY_PROJECT_ID}
-      BIGQUERY_DATASET_ID: ${BIGQUERY_DATASET_ID}
-      GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/bigquery-key.json
-
-      # Redis for caching
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    volumes:
-      # Mount BigQuery credentials
-      - ./credentials/bigquery-key.json:/app/credentials/bigquery-key.json:ro
-    depends_on:
-      - redis
-    networks:
-      - api-network
-
-  # Redis for caching
+  # Redis Cache Service
   redis:
     image: redis:7-alpine
+    container_name: go-gateway-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - api-network
+      - gateway_network
 
-  # Optional: Dremio for local testing
-  # Uncomment if you want to run Dremio locally
+  # Go Data Gateway Service
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-data-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8081}:8081"
+    environment:
+      # Server Configuration
+      PORT: ${PORT:-8081}
+      ENV: ${ENV:-production}
+
+      # API Keys (comma-separated)
+      API_KEYS: ${API_KEYS:-demo-key-123,fusio-gateway-key}
+
+      # Rate Limiting
+      RATE_LIMIT: ${RATE_LIMIT:-100}
+
+      # Redis Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+
+      # Dremio Configuration (for Iceberg queries)
+      DREMIO_HOST: ${DREMIO_HOST:-host.docker.internal}
+      DREMIO_PORT: ${DREMIO_PORT:-32010}
+      DREMIO_USERNAME: ${DREMIO_USERNAME:-}
+      DREMIO_PASSWORD: ${DREMIO_PASSWORD:-}
+
+      # BigQuery Configuration
+      BIGQUERY_PROJECT_ID: ${BIGQUERY_PROJECT_ID:-}
+      BIGQUERY_DATASET_ID: ${BIGQUERY_DATASET_ID:-}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-/app/credentials/bigquery-key.json}
+    volumes:
+      # Mount credentials if using BigQuery
+      - ./bigquery:/app/credentials:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gateway_network
+    extra_hosts:
+      # Allow container to access host services (Dremio)
+      - "host.docker.internal:host-gateway"
+
+  # Optional: Dremio Service (uncomment if you want to run Dremio in Docker)
   # dremio:
   #   image: dremio/dremio-oss:latest
+  #   container_name: dremio
+  #   restart: unless-stopped
   #   ports:
-  #     - "9047:9047"    # Web UI
-  #     - "31010:31010"  # ODBC/JDBC
-  #     - "32010:32010"  # Arrow Flight
+  #     - "9047:9047"   # Web UI
+  #     - "31010:31010" # ODBC/JDBC
+  #     - "32010:32010" # Arrow Flight
+  #     - "45678:45678" # Internal
   #   volumes:
   #     - dremio_data:/opt/dremio/data
+  #   environment:
+  #     - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Ddremio.log.path=/opt/dremio/log -Ddremio.log.level=INFO
   #   networks:
-  #     - api-network
+  #     - gateway_network
 
-  # Monitoring - Prometheus
+  # Optional: Prometheus for metrics
   prometheus:
     image: prom/prometheus:latest
+    container_name: go-gateway-prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
-      - api-network
+      - gateway_network
 
-  # Monitoring - Grafana
+  # Optional: Grafana for visualization
   grafana:
     image: grafana/grafana:latest
+    container_name: go-gateway-grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_INSTALL_PLUGINS: redis-datasource
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
     networks:
-      - api-network
+      - gateway_network
 
 networks:
-  api-network:
+  gateway_network:
     driver: bridge
 
 volumes:
-  fusio_db_data:
   redis_data:
-  dremio_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
+  dremio_data:
+    driver: local

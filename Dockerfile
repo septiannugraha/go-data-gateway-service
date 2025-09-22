@@ -13,8 +13,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server cmd/server/main.go
+# Build the application (using Chi server)
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server cmd/server/main_chi.go
 
 # Final stage
 FROM alpine:latest
@@ -29,6 +29,7 @@ COPY --from=builder /app/server .
 # Copy any config files if needed
 # COPY --from=builder /app/configs ./configs
 
-EXPOSE 8080
+# Default to port 8081 but configurable via ENV
+EXPOSE 8081
 
 CMD ["./server"]
