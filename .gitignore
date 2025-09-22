@@ -67,6 +67,8 @@ ARROW_FLIGHT_ANALYSIS.md
 ROOT_CLAUDE_SUGGESTIONS.md
 *_NOTES.md
 *_TODO.md
+SECURITY_INCIDENT.md
+remove-secrets.sh
 
 # Compiled binaries
 server-chi
