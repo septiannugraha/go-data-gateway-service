@@ -24,11 +24,13 @@ import (
 // DremioArrowClient implements DataSource using Arrow Flight SQL
 type DremioArrowClient struct {
 	client   flight.Client
+	pool     *ArrowConnectionPool // Optional connection pool
 	config   *DremioConfig
 	logger   *zap.Logger
 	cache    *cache.Cache
 	memAlloc memory.Allocator
 	ctx      context.Context
+	usePool  bool
 }
 
 // DremioConfig holds Dremio connection configuration
@@ -42,7 +44,33 @@ type DremioConfig struct {
 	Project  string // Optional: default project/space in Dremio
 }
 
-// NewDremioArrowClient creates a new Arrow Flight SQL client for Dremio
+// NewDremioArrowClientWithPool creates a new Arrow Flight SQL client with connection pooling
+func NewDremioArrowClientWithPool(cfg *DremioConfig, poolConfig *PoolConfig, logger *zap.Logger) (*DremioArrowClient, error) {
+	// Create connection pool
+	pool, err := NewArrowConnectionPool(cfg, poolConfig, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	}
+
+	client := &DremioArrowClient{
+		pool:     pool,
+		config:   cfg,
+		logger:   logger,
+		cache:    cache.New(5*time.Minute, 10*time.Minute),
+		memAlloc: memory.NewGoAllocator(),
+		ctx:      context.Background(),
+		usePool:  true,
+	}
+
+	logger.Info("Dremio Arrow Flight client initialized with connection pool",
+		zap.String("host", cfg.Host),
+		zap.Int("port", cfg.Port),
+		zap.Int("max_connections", poolConfig.MaxConnections))
+
+	return client, nil
+}
+
+// NewDremioArrowClient creates a new Arrow Flight SQL client for Dremio (single connection)
 func NewDremioArrowClient(cfg *DremioConfig, logger *zap.Logger) (*DremioArrowClient, error) {
 	ctx := context.Background()
 
@@ -115,43 +143,93 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 		Cmd:  []byte(query),
 	}
 
-	// Get flight info for the query
-	info, err := d.client.GetFlightInfo(d.ctx, desc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get flight info: %w", err)
-	}
-
-	// Check if we have endpoints
-	if len(info.GetEndpoint()) == 0 {
-		return nil, fmt.Errorf("no endpoints returned")
-	}
-
-	// Fetch results from the first endpoint
-	endpoint := info.GetEndpoint()[0]
-	stream, err := d.client.DoGet(d.ctx, endpoint.GetTicket())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get data stream: %w", err)
-	}
-
-	// Create record reader from stream
-	reader, err := flight.NewRecordReader(stream)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create record reader: %w", err)
-	}
-	defer reader.Release()
-
-	// Convert Arrow records to map format
 	var results []map[string]interface{}
-	for reader.Next() {
-		record := reader.Record()
-		if record != nil {
-			results = append(results, d.recordToMaps(record)...)
-			record.Release()
-		}
-	}
 
-	if reader.Err() != nil {
-		return nil, fmt.Errorf("error reading results: %w", reader.Err())
+	// Use connection pool if available
+	if d.usePool && d.pool != nil {
+		err := d.pool.WithConnection(ctx, func(client flight.Client) error {
+			// Get flight info for the query
+			info, err := client.GetFlightInfo(ctx, desc)
+			if err != nil {
+				return fmt.Errorf("failed to get flight info: %w", err)
+			}
+
+			// Check if we have endpoints
+			if len(info.GetEndpoint()) == 0 {
+				return fmt.Errorf("no endpoints returned")
+			}
+
+			// Fetch results from the first endpoint
+			endpoint := info.GetEndpoint()[0]
+			stream, err := client.DoGet(ctx, endpoint.GetTicket())
+			if err != nil {
+				return fmt.Errorf("failed to get data stream: %w", err)
+			}
+
+			// Create record reader from stream
+			reader, err := flight.NewRecordReader(stream)
+			if err != nil {
+				return fmt.Errorf("failed to create record reader: %w", err)
+			}
+			defer reader.Release()
+
+			// Convert Arrow records to map format
+			for reader.Next() {
+				record := reader.Record()
+				if record != nil {
+					results = append(results, d.recordToMaps(record)...)
+					record.Release()
+				}
+			}
+
+			if reader.Err() != nil {
+				return fmt.Errorf("error reading results: %w", reader.Err())
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Use single connection (original code)
+		info, err := d.client.GetFlightInfo(d.ctx, desc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get flight info: %w", err)
+		}
+
+		// Check if we have endpoints
+		if len(info.GetEndpoint()) == 0 {
+			return nil, fmt.Errorf("no endpoints returned")
+		}
+
+		// Fetch results from the first endpoint
+		endpoint := info.GetEndpoint()[0]
+		stream, err := d.client.DoGet(d.ctx, endpoint.GetTicket())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get data stream: %w", err)
+		}
+
+		// Create record reader from stream
+		reader, err := flight.NewRecordReader(stream)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create record reader: %w", err)
+		}
+		defer reader.Release()
+
+		// Convert Arrow records to map format
+		for reader.Next() {
+			record := reader.Record()
+			if record != nil {
+				results = append(results, d.recordToMaps(record)...)
+				record.Release()
+			}
+		}
+
+		if reader.Err() != nil {
+			return nil, fmt.Errorf("error reading results: %w", reader.Err())
+		}
 	}
 
 	queryTime := time.Since(start)
@@ -271,9 +349,25 @@ func (d *DremioArrowClient) getAuthContext(ctx context.Context) context.Context 
 	return ctx
 }
 
-// Close closes the Arrow Flight client
+// Close closes the Arrow Flight client or connection pool
 func (d *DremioArrowClient) Close() error {
-	return d.client.Close()
+	if d.usePool && d.pool != nil {
+		return d.pool.Close()
+	}
+	if d.client != nil {
+		return d.client.Close()
+	}
+	return nil
+}
+
+// GetPoolMetrics returns connection pool metrics (if using pool)
+func (d *DremioArrowClient) GetPoolMetrics() map[string]interface{} {
+	if d.usePool && d.pool != nil {
+		return d.pool.GetMetrics()
+	}
+	return map[string]interface{}{
+		"pool_enabled": false,
+	}
 }
 
 // isReadOnlySQL validates that a SQL query is read-only

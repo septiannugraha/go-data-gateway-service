@@ -82,21 +82,51 @@ func main() {
 		// Create handlers
 		queryHandler := v1.NewQueryHandler(dataSources, logger)
 		tenderHandler := v1.NewTenderHandler(dataSources["dremio"], logger)
+		batchHandler := v1.NewBatchHandler(dataSources, logger)
+		streamHandler := v1.NewStreamHandler(dataSources, logger)
 
-		// Create BigQuery client for RUP handler
+		// Create BigQuery client for RUP handler and cost estimator
 		var rupHandler *v1.RUPHandler
+		var costEstimator *clients.QueryCostEstimator
 		if cfg.BigQuery.ProjectID != "" {
 			bigQueryClient, err := clients.NewBigQueryClient(cfg.BigQuery, logger)
 			if err != nil {
 				logger.Warn("BigQuery client initialization failed", zap.Error(err))
 			} else {
 				rupHandler = v1.NewRUPHandler(bigQueryClient, logger)
-				logger.Info("BigQuery client initialized for RUP handler")
+				costEstimator = clients.NewQueryCostEstimator(bigQueryClient.GetClient(), cfg.BigQuery.ProjectID, logger)
+				logger.Info("BigQuery client initialized for RUP handler and cost estimation")
 			}
 		}
 
-		// Query endpoint
+		// Query endpoints
 		r.Post("/query", queryHandler.Execute)
+		r.Post("/batch", batchHandler.Execute)
+		r.Post("/batch/stream", batchHandler.Stream)
+		r.Post("/stream", streamHandler.Stream)
+		r.Post("/stream/sse", streamHandler.StreamSSE)
+
+		// Cost estimation endpoint (BigQuery only)
+		if costEstimator != nil {
+			r.Post("/estimate-cost", func(w http.ResponseWriter, r *http.Request) {
+				var req struct {
+					Query string `json:"query"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+					http.Error(w, "Invalid request", http.StatusBadRequest)
+					return
+				}
+
+				estimate, err := costEstimator.EstimateQueryCost(r.Context(), req.Query)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(estimate)
+			})
+		}
 
 		// Tender endpoints (Dremio)
 		r.Route("/tender", func(r chi.Router) {
@@ -186,13 +216,23 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger, cacheService 
 				Project:  "nessie_iceberg",
 			}
 
-			arrowClient, err := datasource.NewDremioArrowClient(arrowConfig, logger)
+			// Configure connection pool for Arrow Flight
+			poolConfig := &datasource.PoolConfig{
+				MaxConnections:      10,
+				MinConnections:      2,
+				MaxIdleTime:         30 * time.Minute,
+				ConnectionTimeout:   10 * time.Second,
+				HealthCheckInterval: 1 * time.Minute,
+			}
+
+			arrowClient, err := datasource.NewDremioArrowClientWithPool(arrowConfig, poolConfig, logger)
 			if err != nil {
 				logger.Warn("Arrow Flight SQL initialization failed", zap.Error(err))
 			} else {
 				// Wrap with caching
 				sources["dremio"] = cache.NewCachedDataSource(arrowClient, cacheService, logger)
-				logger.Info("Dremio Arrow Flight SQL client initialized with caching")
+				logger.Info("Dremio Arrow Flight SQL client initialized with connection pool and caching",
+					zap.Int("max_connections", poolConfig.MaxConnections))
 			}
 		} else {
 			// Use REST client (default)

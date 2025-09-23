@@ -40,6 +40,11 @@ func NewBigQueryClient(cfg config.BigQueryConfig, logger *zap.Logger) (*BigQuery
 	}, nil
 }
 
+// GetClient returns the underlying BigQuery client for advanced operations
+func (c *BigQueryClient) GetClient() *bigquery.Client {
+	return c.client
+}
+
 // Query executes a SQL query against BigQuery
 func (c *BigQueryClient) Query(ctx context.Context, sqlQuery string) ([]map[string]interface{}, error) {
 	// Check cache first
