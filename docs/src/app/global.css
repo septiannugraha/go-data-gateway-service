@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'fumadocs-openapi/css/preset.css';
+
+/* Custom INAPROC Red & White Theme */
+:root {
+  /* Primary Colors - Red palette */
+  --color-fd-primary: hsl(0, 85%, 60%);
+  --color-fd-primary-foreground: hsl(0, 0%, 98%);
+  
+  /* Background Colors - White/Light palette */
+  --color-fd-background: hsl(0, 0%, 100%);
+  --color-fd-foreground: hsl(0, 0%, 15%);
+  --color-fd-muted: hsl(0, 0%, 96%);
+  --color-fd-muted-foreground: hsl(0, 0%, 45%);
+  
+  /* Card & Popover */
+  --color-fd-card: hsl(0, 0%, 100%);
+  --color-fd-card-foreground: hsl(0, 0%, 15%);
+  --color-fd-popover: hsl(0, 0%, 100%);
+  --color-fd-popover-foreground: hsl(0, 0%, 15%);
+  
+  /* Border & Input */
+  --color-fd-border: hsl(0, 0%, 90%);
+  --color-fd-input: hsl(0, 0%, 90%);
+  
+  /* Secondary Colors - Light red/pink */
+  --color-fd-secondary: hsl(0, 30%, 95%);
+  --color-fd-secondary-foreground: hsl(0, 85%, 60%);
+  
+  /* Accent Colors - Red variants */
+  --color-fd-accent: hsl(0, 50%, 95%);
+  --color-fd-accent-foreground: hsl(0, 85%, 55%);
+  
+  /* Destructive - Darker red */
+  --color-fd-destructive: hsl(0, 84%, 60%);
+  --color-fd-destructive-foreground: hsl(0, 0%, 98%);
+  
+  /* Ring - Red accent */
+  --color-fd-ring: hsl(0, 85%, 60%);
+  
+  /* Radius */
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Primary Colors - Red palette for dark mode */
+  --color-fd-primary: hsl(0, 75%, 65%);
+  --color-fd-primary-foreground: hsl(0, 0%, 98%);
+  
+  /* Background Colors - Dark with red tints */
+  --color-fd-background: hsl(0, 5%, 8%);
+  --color-fd-foreground: hsl(0, 0%, 95%);
+  --color-fd-muted: hsl(0, 5%, 12%);
+  --color-fd-muted-foreground: hsl(0, 0%, 65%);
+  
+  /* Card & Popover */
+  --color-fd-card: hsl(0, 5%, 10%);
+  --color-fd-card-foreground: hsl(0, 0%, 95%);
+  --color-fd-popover: hsl(0, 5%, 10%);
+  --color-fd-popover-foreground: hsl(0, 0%, 95%);
+  
+  /* Border & Input */
+  --color-fd-border: hsl(0, 5%, 18%);
+  --color-fd-input: hsl(0, 5%, 18%);
+  
+  /* Secondary Colors */
+  --color-fd-secondary: hsl(0, 10%, 15%);
+  --color-fd-secondary-foreground: hsl(0, 75%, 70%);
+  
+  /* Accent Colors */
+  --color-fd-accent: hsl(0, 10%, 15%);
+  --color-fd-accent-foreground: hsl(0, 75%, 70%);
+  
+  /* Destructive */
+  --color-fd-destructive: hsl(0, 80%, 65%);
+  --color-fd-destructive-foreground: hsl(0, 0%, 98%);
+  
+  /* Ring */
+  --color-fd-ring: hsl(0, 75%, 65%);
+}

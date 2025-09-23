@@ -1,0 +1,42 @@
+---
+title: Vendor Authentication
+description: Panduan autentikasi untuk Vendor API
+---
+
+# Vendor Authentication
+
+## Required Scopes
+
+Untuk mengakses Vendor API, Anda memerlukan scope berikut:
+
+- `vendor.read` - Read access ke data vendor
+- `vendor.write` - Write access untuk update data vendor (Admin only)
+- `vendor.evaluate` - Submit evaluasi kinerja vendor
+
+## Getting Access Token
+
+```bash
+curl -X POST https://api.inaproc.id/v1/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=vendor.read vendor.evaluate"
+```
+
+## Rate Limits
+
+| Endpoint Category | Rate Limit |
+|------------------|------------|
+| Vendor search | 100 req/min |
+| Performance data | 50 req/min |
+| Evaluation submit | 10 req/min |
+
+## Permissions
+
+| Role | Permissions |
+|------|-------------|
+| Public | Basic vendor information |
+| Registered User | Full vendor data access |
+| Agency Admin | Evaluate vendors from their projects |
+| System Admin | Full access including blacklist management |

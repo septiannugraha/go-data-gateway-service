@@ -1,0 +1,179 @@
+---
+title: Error Handling
+description: Panduan menangani error dan troubleshooting INAPROC API Gateway
+---
+
+# Error Handling
+
+## Format Error Response
+
+Semua error response mengikuti format standar:
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Deskripsi error yang mudah dipahami",
+    "details": {
+      "field": "Informasi tambahan"
+    },
+    "request_id": "req_abc123",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+## HTTP Status Codes
+
+### Success Codes (2xx)
+| Code | Deskripsi | Use Case |
+|------|-----------|----------|
+| 200 | OK | Request berhasil |
+| 201 | Created | Resource berhasil dibuat |
+| 204 | No Content | Request berhasil tanpa body |
+
+### Client Error Codes (4xx)
+| Code | Deskripsi | Use Case |
+|------|-----------|----------|
+| 400 | Bad Request | Request tidak valid |
+| 401 | Unauthorized | Perlu autentikasi |
+| 403 | Forbidden | Tidak memiliki permission |
+| 404 | Not Found | Resource tidak ditemukan |
+| 409 | Conflict | Konflik state data |
+| 422 | Unprocessable Entity | Validasi gagal |
+| 429 | Too Many Requests | Rate limit tercapai |
+
+### Server Error Codes (5xx)
+| Code | Deskripsi | Use Case |
+|------|-----------|----------|
+| 500 | Internal Server Error | Error internal |
+| 502 | Bad Gateway | Upstream bermasalah |
+| 503 | Service Unavailable | Maintenance/overload |
+| 504 | Gateway Timeout | Timeout upstream |
+
+## Contoh Error Umum
+
+### Authentication Errors
+```json
+{
+  "error": {
+    "code": "INVALID_TOKEN",
+    "message": "Token tidak valid atau sudah kedaluwarsa",
+    "details": {
+      "expired_at": "2024-01-15T09:00:00Z"
+    }
+  }
+}
+```
+
+### Validation Errors
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validasi input gagal",
+    "details": {
+      "errors": [
+        { "field": "email", "message": "Format email tidak valid" },
+        { "field": "budget", "message": "Budget harus > 0" }
+      ]
+    }
+  }
+}
+```
+
+### Resource Errors
+```json
+{
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "Paket tender tidak ditemukan",
+    "details": {
+      "resource": "tender_paket",
+      "id": "PKT-2024-001"
+    }
+  }
+}
+```
+
+## Referensi Error Code
+| Code | Deskripsi | Aksi |
+|------|-----------|------|
+| INVALID_TOKEN | Token tidak valid | Dapatkan token baru |
+| TOKEN_EXPIRED | Token kedaluwarsa | Refresh token |
+| INSUFFICIENT_SCOPE | Scope tidak cukup | Ajukan scope tambahan |
+| VALIDATION_ERROR | Input tidak valid | Perbaiki input |
+| RESOURCE_NOT_FOUND | Resource tidak ada | Verifikasi ID |
+| DUPLICATE_RESOURCE | Resource sudah ada | Gunakan endpoint update |
+| RATE_LIMIT_EXCEEDED | Rate limit tercapai | Tunggu / upgrade tier |
+| SERVICE_UNAVAILABLE | Layanan tidak tersedia | Retry dengan backoff |
+
+## Handling Errors (JavaScript)
+```javascript
+class APIError extends Error {
+  constructor(resp) {
+    super(resp.error.message);
+    this.code = resp.error.code;
+    this.details = resp.error.details;
+    this.requestId = resp.error.request_id;
+  }
+}
+
+async function apiCall(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const body = await res.json();
+    throw new APIError(body);
+  }
+  return res.json();
+}
+```
+
+## Handling Errors (Python)
+```python
+import requests, time
+
+class APIError(Exception):
+    def __init__(self, resp):
+        self.code = resp['error']['code']
+        self.message = resp['error']['message']
+        super().__init__(self.message)
+
+def api_call(url, headers):
+    r = requests.get(url, headers=headers)
+    if r.status_code != 200:
+        raise APIError(r.json())
+    return r.json()
+```
+
+## Retry Strategy (Exponential Backoff)
+```javascript
+async function retry(fn, max = 3) {
+  let err;
+  for (let i = 0; i < max; i++) {
+    try { return await fn(); } catch (e) {
+      err = e;
+      if (e.code === 'RATE_LIMIT_EXCEEDED') {
+        await new Promise(r => setTimeout(r, (i + 1) * 1000));
+        continue;
+      }
+      if (e.code?.startsWith('INVALID') || e.code === 'VALIDATION_ERROR') throw e;
+      await new Promise(r => setTimeout(r, 2 ** i * 500));
+    }
+  }
+  throw err;
+}
+```
+
+## Request ID
+
+Setiap response menyertakan X-Request-ID untuk keperluan debugging.
+```bash
+curl -I https://api.inaproc.id/v1/tender/paket
+```
+
+## Debug Mode
+Tambahkan header `X-Debug-Mode: true` untuk detail tambahan.
+
+## Kontak Support
+Jika masalah berlanjut, sertakan request_id dan kirim ke api-support@inaproc.id

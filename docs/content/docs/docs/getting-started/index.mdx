@@ -1,0 +1,73 @@
+---
+title: Getting Started
+description: Memulai dengan INAPROC API Gateway
+icon: Rocket
+---
+
+# Getting Started
+
+Panduan lengkap untuk memulai menggunakan INAPROC API Gateway dalam beberapa langkah mudah.
+
+## Persyaratan
+
+Sebelum memulai, pastikan Anda memiliki:
+- Akun email aktif (preferably dari domain instansi)
+- Akses internet untuk testing API
+- Tools untuk testing API (Postman, curl, atau sejenisnya)
+
+## Langkah-Langkah Cepat
+
+import { Steps } from 'fumadocs-ui/components/steps';
+
+<Steps>
+  ### Registrasi Developer Account
+  
+  Daftar untuk mendapatkan akun developer di Portal Developer INAPROC.
+  
+  ```bash
+  curl -X POST https://api.inaproc.id/v1/auth/register \
+    -H "Content-Type: application/json" \
+    -d '{
+      "email": "developer@instansi.go.id",
+      "nama": "Nama Lengkap", 
+      "instansi": "Nama Instansi",
+      "tujuan": "Tujuan penggunaan API"
+    }'
+  ```
+
+  ### Aktivasi Akun
+  
+  Cek email Anda untuk link aktivasi. Klik link tersebut untuk mengaktifkan akun Anda.
+
+  ### Dapatkan API Key
+  
+  Login ke dashboard developer dan generate API key Anda:
+  
+  ```bash
+  curl -X POST https://api.inaproc.id/v1/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{
+      "email": "developer@instansi.go.id",
+      "password": "password_anda"
+    }'
+  ```
+
+  ### Test API
+  
+  Lakukan test API call pertama Anda:
+  
+  ```bash
+  curl -X GET https://api.inaproc.id/v1/vendor/penyedia \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    -H "Accept: application/json"
+  ```
+</Steps>
+
+## Selanjutnya
+
+Setelah berhasil melakukan setup awal, Anda dapat:
+
+- [Pelajari Authentication →](/docs/getting-started/authentication)
+- [Lihat Quick Start Guide →](/docs/getting-started/quick-start)  
+- [Pahami Rate Limiting →](/docs/getting-started/rate-limiting)
+- [Pelajari Error Handling →](/docs/getting-started/error-handling)

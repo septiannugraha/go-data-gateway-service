@@ -1,0 +1,42 @@
+---
+title: Vendor API Introduction
+description: Pengenalan Vendor API untuk evaluasi dan monitoring penyedia barang/jasa
+---
+
+# Vendor API
+
+## Pengenalan
+
+Vendor API adalah bagian dari INAPROC API Gateway untuk mengelola data penyedia barang/jasa (vendor), evaluasi kinerja, dan monitoring sistem vendor.
+
+## Fitur Utama
+
+- **Profil Vendor**: Manajemen data dan profil vendor
+- **Evaluasi Kinerja**: Sistem evaluasi dan scoring vendor
+- **Monitoring**: Real-time monitoring kinerja vendor
+- **Blacklist Management**: Pengelolaan daftar hitam vendor
+
+## Base URL
+
+```
+https://api.inaproc.id/v1/vendor
+```
+
+## Contoh Struktur Data
+
+```json
+{
+  "vendor_id": "VDR-2024-001",
+  "nama": "PT ABC Technology",
+  "npwp": "01.234.567.8-901.000",
+  "status": "aktif",
+  "kategori": ["IT", "Konstruksi"],
+  "kinerja": {
+    "score": 85.5,
+    "level": "Baik",
+    "total_project": 25,
+    "success_rate": 92.0
+  },
+  "sertifikasi": ["ISO 9001", "ISO 27001"]
+}
+```

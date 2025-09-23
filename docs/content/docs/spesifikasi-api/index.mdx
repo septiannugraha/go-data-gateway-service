@@ -1,0 +1,391 @@
+---
+title: Spesifikasi API
+description: Dokumentasi lengkap endpoint dan spesifikasi INAPROC API Gateway
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+# Spesifikasi API
+
+Selamat datang di dokumentasi spesifikasi API INAPROC. Di sini Anda akan menemukan dokumentasi lengkap tentang semua endpoint API yang tersedia.
+
+## Daftar API Endpoints
+
+<Cards>
+  <Card 
+    href="/docs/spesifikasi-api/login-untuk-mendapatkan-access-token-post" 
+    title="Login untuk mendapatkan access token" 
+    description="POST /auth/login"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-blue-600 bg-blue-50">POST</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/download-file-rup-rencana-umum-pengadaan-post" 
+    title="Download File RUP (Rencana Umum Pengadaan)" 
+    description="POST /rup/download-file"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-blue-600 bg-blue-50">POST</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/semua-penyedia-get" 
+    title="Semua Penyedia" 
+    description="GET /vendor/penyedia"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/penyedia-terverifikasi-get" 
+    title="Penyedia Terverifikasi" 
+    description="GET /vendor/penyedia/terverifikasi"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/penyedia-roaming-get" 
+    title="Penyedia Roaming" 
+    description="GET /vendor/penyedia/roaming"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-penyedia-berdasarkan-bentuk-usaha-csv-get" 
+    title="Rekap Penyedia Berdasarkan Bentuk Usaha (CSV)" 
+    description="GET /vendor/rekap/penyedia-bentuk-usaha"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-pemenang-tender-csv-get" 
+    title="Rekap Pemenang Tender (CSV)" 
+    description="GET /vendor/rekap/pemenang-tender"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rincian-pemenang-tender-get" 
+    title="Rincian Pemenang Tender" 
+    description="GET /vendor/rincian/pemenang-tender"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-pemenang-non-tender-csv-get" 
+    title="Rekap Pemenang Non Tender (CSV)" 
+    description="GET /vendor/rekap/pemenang-non-tender"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rincian-pemenang-non-tender-get" 
+    title="Rincian Pemenang Non Tender" 
+    description="GET /vendor/rincian/pemenang-non-tender"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rincian-paket-tender-get" 
+    title="Rincian Paket Tender" 
+    description="GET /tender/paket"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rincian-paket-tender-sedang-berjalan-get" 
+    title="Rincian Paket Tender Sedang Berjalan" 
+    description="GET /tender/paket/berjalan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/paket-diulang-get" 
+    title="Paket Diulang" 
+    description="GET /tender/paket/diulang"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-bulanan-tender-csv-get" 
+    title="Rekap Bulanan Tender (CSV)" 
+    description="GET /tender/rekap/bulanan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-tahunan-tender-csv-get" 
+    title="Rekap Tahunan Tender (CSV)" 
+    description="GET /tender/rekap/tahunan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-peserta-tender-csv-get" 
+    title="Rekap Peserta Tender (CSV)" 
+    description="GET /tender/rekap/peserta"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-total-per-satker-csv-get" 
+    title="Rekapitulasi Total Per Satker (CSV)" 
+    description="GET /tender/rekap/total-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-per-kategori-tender-csv-get" 
+    title="Rekapitulasi Per Kategori Tender (CSV)" 
+    description="GET /tender/rekap/kategori"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-per-nilai-paket-csv-get" 
+    title="Rekapitulasi Per Nilai Paket (CSV)" 
+    description="GET /tender/rekap/nilai"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-sumber-dana-csv-get" 
+    title="Rekap Per Sumber Dana (CSV)" 
+    description="GET /tender/rekap/sumber-dana"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-pokja-csv-get" 
+    title="Rekap Paket Per Pokja (CSV)" 
+    description="GET /tender/rekap/pokja"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-anggota-pokja-csv-get" 
+    title="Rekap Paket Per Anggota Pokja (CSV)" 
+    description="GET /tender/rekap/pokja-anggota"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-ppk-csv-get" 
+    title="Rekap Paket PPK (CSV)" 
+    description="GET /tender/rekap/ppk"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-metode-pemilihan-csv-get" 
+    title="Rekap Per Metode Pemilihan (CSV)" 
+    description="GET /tender/rekap/metode-pemilihan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-sanggahan-tender-csv-get" 
+    title="Rekap Sanggahan Tender (CSV)" 
+    description="GET /tender/rekap/sanggahan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-kontrak-tender-csv-get" 
+    title="Rekap Kontrak Tender (CSV)" 
+    description="GET /tender/rekap/kontrak"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rincian-paket-non-tender-get" 
+    title="Rincian Paket Non Tender" 
+    description="GET /non-tender/paket"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-non-tender-ppk-csv-get" 
+    title="Rekap Paket Non Tender PPK (CSV)" 
+    description="GET /non-tender/rekap/ppk"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-pencatatan-non-tender-csv-get" 
+    title="Rekap Pencatatan Non Tender (CSV)" 
+    description="GET /non-tender/rekap/pencatatan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-pencatatan-swakelola-csv-get" 
+    title="Rekap Pencatatan Swakelola (CSV)" 
+    description="GET /non-tender/rekap/swakelola"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-bulanan-non-tender-csv-get" 
+    title="Rekap Bulanan Non Tender (CSV)" 
+    description="GET /non-tender/rekap/bulanan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-tahunan-non-tender-csv-get" 
+    title="Rekap Tahunan Non Tender (CSV)" 
+    description="GET /non-tender/rekap/tahunan"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-total-paket-non-tender-per-satker-csv-get" 
+    title="Rekapitulasi Total Paket Non Tender Per Satker (CSV)" 
+    description="GET /non-tender/rekap/total-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-non-etendering-pejabat-pengadaan-csv-get" 
+    title="Rekap Paket Non Etendering Pejabat Pengadaan (CSV)" 
+    description="GET /non-tender/rekap/non-etendering-pejabat"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-per-nilai-paket-non-etendering-csv-get" 
+    title="Rekapitulasi Per Nilai Paket Non Etendering (CSV)" 
+    description="GET /non-tender/rekap/nilai-non-etendering"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekapitulasi-status-satuan-kerja-swakelola-csv-get" 
+    title="Rekapitulasi Status Satuan Kerja Swakelola (CSV)" 
+    description="GET /non-tender/rekap/status-swakelola"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-kontrak-non-tender-csv-get" 
+    title="Rekap Kontrak Non Tender (CSV)" 
+    description="GET /non-tender/rekap/kontrak"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-epurchasing-csv-get" 
+    title="Rekap Paket E-Purchasing (CSV)" 
+    description="GET /epurchasing/rekap/paket"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-paket-epurchasing-csv-get" 
+    title="Rekap Per Paket E-Purchasing (CSV)" 
+    description="GET /epurchasing/rekap/per-paket"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-satker-csv-get" 
+    title="Rekap Paket Per Satker (CSV)" 
+    description="GET /epurchasing/rekap/per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-jenis-penyedia-csv-get" 
+    title="Rekap Paket Per Jenis Penyedia (CSV)" 
+    description="GET /epurchasing/rekap/per-jenis-penyedia"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-jenis-produk-csv-get" 
+    title="Rekap Paket Per Jenis Produk (CSV)" 
+    description="GET /epurchasing/rekap/per-jenis-produk"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-per-status-csv-get" 
+    title="Rekap Paket Per Status (CSV)" 
+    description="GET /epurchasing/rekap/per-status"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-jenis-katalog-csv-get" 
+    title="Rekap Per Jenis Katalog (CSV)" 
+    description="GET /epurchasing/rekap/per-jenis-katalog"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-penyedia-csv-get" 
+    title="Rekap Per Penyedia (CSV)" 
+    description="GET /epurchasing/rekap/per-penyedia"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-per-ppk-csv-get" 
+    title="Rekap Per PPK (CSV)" 
+    description="GET /epurchasing/rekap/per-ppk"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-penyedia-katalog-csv-get" 
+    title="Rekap Penyedia Katalog (CSV)" 
+    description="GET /epurchasing/rekap/penyedia-katalog"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-realisasi-paket-per-satker-csv-get" 
+    title="Rekap Realisasi Paket Per Satker (CSV)" 
+    description="GET /epurchasing/rekap/realisasi-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-paket-lama-katalog-v2-csv-get" 
+    title="Rekap Paket Lama (Katalog V2) (CSV)" 
+    description="GET /epurchasing/rekap/paket-lama-v2"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-realisasi-toko-daring-csv-get" 
+    title="Rekap Realisasi Toko Daring (CSV)" 
+    description="GET /toko-daring/rekap/realisasi"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-realisasi-toko-daring-per-marketplace-csv-get" 
+    title="Rekap Realisasi Toko Daring Per Marketplace (CSV)" 
+    description="GET /toko-daring/rekap/realisasi-per-marketplace"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rekap-realisasi-toko-daring-per-satker-csv-get" 
+    title="Rekap Realisasi Toko Daring Per Satker (CSV)" 
+    description="GET /toko-daring/rekap/realisasi-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rencana-pengadaan-penyedia-get" 
+    title="Rencana Pengadaan Penyedia" 
+    description="GET /rup/rencana/penyedia"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/rencana-pengadaan-penyedia-konsolidasi-get" 
+    title="Rencana Pengadaan Penyedia Konsolidasi" 
+    description="GET /rup/rencana/penyedia-konsolidasi"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/ringkasan-rencana-pengadaan-per-satker-get" 
+    title="Ringkasan Rencana Pengadaan Per Satker" 
+    description="GET /rup/ringkasan/satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/realisasi-rencana-pengadaan-penyedia-per-satker-get" 
+    title="Realisasi Rencana Pengadaan Penyedia Per Satker" 
+    description="GET /rup/realisasi/penyedia-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+  <Card 
+    href="/docs/spesifikasi-api/realisasi-rencana-pengadaan-swakelola-per-satker-get" 
+    title="Realisasi Rencana Pengadaan Swakelola Per Satker" 
+    description="GET /rup/realisasi/swakelola-per-satker"
+    icon={<span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-green-600 bg-green-50">GET</span>}
+  />
+</Cards>
+
+## Informasi Umum
+
+### Base URL
+```
+https://api.inaproc.id/v1
+```
+
+### Format Response
+Semua response API menggunakan format JSON dengan struktur standar:
+
+```json
+{
+  "success": boolean,
+  "message": "string",
+  "data": object | array,
+  "meta": {
+    "timestamp": "string",
+    "version": "string"
+  }
+}
+```
+
+### Authentication
+Semua API endpoint memerlukan autentikasi menggunakan API Key:
+
+```
+Authorization: Bearer YOUR_API_KEY
+```
+
+### Rate Limiting
+- **100 requests per minute** untuk endpoint umum
+- **1000 requests per minute** untuk endpoint premium
+- **10 requests per second** untuk endpoint real-time

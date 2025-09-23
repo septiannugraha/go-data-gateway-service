@@ -1,23 +1,30 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# =============================================================================
+# MONOREPO GITIGNORE - Inaproc API Gateway
+# =============================================================================
+# This gitignore handles multiple technologies in a monorepo structure:
+# - data-gateway-service/ (Go)
+# - inaproc-api-gateway/ (PHP/Fusio) 
+# - docs/ (Node.js/Next.js/Fumadocs)
+# =============================================================================
 
-# Test binary, built with `go test -c`
-*.test
+# =============================================================================
+# GLOBAL IGNORES (All Projects)
+# =============================================================================
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.vs/
 
-# Dependency directories
-vendor/
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Go workspace file
-go.work
-
-# Environment variables
+# Environment and configuration files
 .env
 .env.local
 .env.*.local
@@ -25,44 +32,29 @@ go.work
 !.env.example
 !.env.docker.example
 
-# IDE specific files
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS specific files
-.DS_Store
-Thumbs.db
-
-# Project specific
-/go-data-gateway
-/bin/
-/dist/
-/tmp/
-
-# Credentials
+# Security and credentials
 credentials/
-bigquery/
+secrets/
 *.pem
 *.key
 *.crt
-*.json
+*.p12
+*.pfx
 
 # Logs
 *.log
 logs/
+log/
 
-# Cache
+# Cache and temporary files
 .cache/
+cache/
+*.tmp
+*.temp
+*.backup
+*.bak
 
-# Local development files
-lkpp-data-lake/
-CLAUDE.md
-.claude/
-
-# Test scripts and internal documentation
+# Development and testing files
 test_*.sh
 *.test.sh
 LESSONS_LEARNED.md
@@ -72,18 +64,299 @@ ROOT_CLAUDE_SUGGESTIONS.md
 *_TODO.md
 SECURITY_INCIDENT.md
 remove-secrets.sh
+nvim-linux64/
 
-# Compiled binaries
+# Local development
+lkpp-data-lake/
+CLAUDE.md
+.claude/
+
+# Archive files
+*.tar.gz
+*.tar.gz.*
+*.zip
+*.rar
+
+# =============================================================================
+# DATA GATEWAY SERVICE (Go) - /data-gateway-service/
+# =============================================================================
+
+# Go binaries and executables
+data-gateway-service/*.exe
+data-gateway-service/*.exe~
+data-gateway-service/*.dll
+data-gateway-service/*.so
+data-gateway-service/*.dylib
+
+# Go test files
+data-gateway-service/*.test
+data-gateway-service/*.out
+
+# Go dependencies
+data-gateway-service/vendor/
+data-gateway-service/go.work
+data-gateway-service/go.work.sum
+
+# Go build artifacts
+data-gateway-service/bin/
+data-gateway-service/build/
+data-gateway-service/dist/
+data-gateway-service/tmp/
+
+# Go specific binaries
+data-gateway-service/go-data-gateway
+data-gateway-service/server-chi
+data-gateway-service/test-server
+data-gateway-service/go-data-gateway-chi
+data-gateway-service/main
+
+# Go development tools
+data-gateway-service/.air.toml
+
+# Go coverage reports
+data-gateway-service/coverage.out
+data-gateway-service/coverage.html
+
+# =============================================================================
+# INAPROC API GATEWAY (PHP/Fusio) - /inaproc-api-gateway/
+# =============================================================================
+
+# PHP Composer dependencies
+inaproc-api-gateway/vendor/
+inaproc-api-gateway/composer.lock
+
+# Fusio specific directories
+inaproc-api-gateway/cache/
+inaproc-api-gateway/var/
+inaproc-api-gateway/log/
+inaproc-api-gateway/tmp/
+
+# Fusio configuration files
+inaproc-api-gateway/.env
+!inaproc-api-gateway/.env.example
+
+# Fusio generated files
+inaproc-api-gateway/public/index.php
+inaproc-api-gateway/resources/route/*.json
+
+# PHP logs and temporary files
+inaproc-api-gateway/*.log
+inaproc-api-gateway/error.log
+
+# =============================================================================
+# DOCUMENTATION (Node.js/Next.js/Fumadocs) - /docs/
+# =============================================================================
+
+# Node.js dependencies
+docs/node_modules/
+docs/package-lock.json
+docs/yarn.lock
+docs/pnpm-lock.yaml
+
+# Next.js build output
+docs/.next/
+docs/out/
+docs/build/
+
+# Fumadocs and content layer generated files
+docs/.source/
+docs/.fumadocs/
+docs/.contentlayer/
+docs/.content-collections/
+
+# Next.js and TypeScript generated files
+docs/next-env.d.ts
+docs/*.tsbuildinfo
+
+# Deployment platforms
+docs/.vercel/
+docs/.netlify/
+docs/.wrangler/
+
+# Static exports
+docs/out/
+docs/export/
+
+# Coverage reports
+docs/coverage/
+
+# Generated API documentation
+docs/content/docs/spesifikasi-api/*.mdx
+!docs/content/docs/spesifikasi-api/index.mdx
+!docs/content/docs/spesifikasi-api/meta.json
+
+# Node.js logs
+docs/npm-debug.log*
+docs/yarn-debug.log*
+docs/yarn-error.log*
+
+# =============================================================================
+# DOCKER AND INFRASTRUCTURE
+# =============================================================================
+
+# Docker overrides and data
+docker-compose.override.yml
+docker-data/
+data/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Database dumps and migrations  
+*.sql
+*.dump
+migrations/*.sql
+
+# =============================================================================
+# GENERATED FILES AND BUILD ARTIFACTS
+# =============================================================================
+
+# API specifications (auto-generated)
+inaproc-api.yaml
+openapi.yaml
+swagger.yaml
+api-spec.json
+
+# Build artifacts
+build/
+dist/
+target/
+out/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# =============================================================================
+# LEGACY FILES (from previous structure)
+# =============================================================================
+
+# Legacy Go files (now moved to data-gateway-service/)
+/go-data-gateway
+/bin/
+/dist/
+/tmp/
 server-chi
 test-server
 go-data-gateway-chi
+bigquery/
+prometheus.yml
 
-# Temporary and backup files
-*.tar.gz
-*.tar.gz.*
-nvim-linux64/
-*.backup
-*.tmp
+# Legacy config files
+.air.toml
+API_TEST_COMMANDS.md
+Dockerfile
+Dockerfile.dev
+docker-start.sh
+start.sh
 
+# Legacy directories
+/talks/
+
+# =============================================================================
+# MONOREPO NOTES
+# =============================================================================
+# 
+# This root .gitignore handles all ignore patterns for the monorepo.
+# Subdirectory .gitignore files (if they exist) can be used for:
+# - Local development overrides
+# - Project-specific patterns not covered here
+# - Tool-specific configurations
+#
+# Current subdirectory .gitignore files:
+# - docs/.gitignore (Next.js/Fumadocs specific)
+# - data-gateway-service/.gitignore (Go specific)
+#
+# Consider removing subdirectory .gitignore files if all patterns
+# are covered in this root file.
+# =============================================================================
+
+<<<<<<< HEAD
 # Docker volumes
 data//talks/
+=======
+# =============================================================================
+# INAPROC API GATEWAY (FUSIO/PHP) - /inaproc-api-gateway/
+# =============================================================================
+
+# Fusio specific
+inaproc-api-gateway/cache/
+inaproc-api-gateway/var/
+inaproc-api-gateway/log/
+
+# PHP Composer
+inaproc-api-gateway/vendor/
+inaproc-api-gateway/composer.lock
+
+# PHP temporary files
+inaproc-api-gateway/*.log
+
+# Fusio configuration (keep examples)
+inaproc-api-gateway/.env
+!inaproc-api-gateway/.env.example
+
+# Fusio generated files
+inaproc-api-gateway/public/index.php
+inaproc-api-gateway/resources/route/*.json
+
+# =============================================================================
+# DOCUMENTATION (FUMADOCS/NEXT.JS) - /docs/
+# =============================================================================
+
+# Next.js build output
+docs/.next/
+docs/out/
+docs/build/
+
+# Node.js dependencies
+docs/node_modules/
+docs/package-lock.json
+docs/yarn.lock
+docs/pnpm-lock.yaml
+
+# Fumadocs generated files
+docs/.source/
+docs/.fumadocs/
+
+# Next.js and TypeScript
+docs/.next/
+docs/next-env.d.ts
+
+# Vercel deployment
+docs/.vercel/
+
+# Cloudflare Pages
+docs/.wrangler/
+
+# Generated OpenAPI documentation
+docs/content/docs/spesifikasi-api/*.mdx
+!docs/content/docs/spesifikasi-api/index.mdx
+!docs/content/docs/spesifikasi-api/meta.json
+
+# Static export
+docs/out/
+
+# =============================================================================
+# ADDITIONAL PROJECT-SPECIFIC IGNORES
+# =============================================================================
+
+# Docker-related
+docker-compose.override.yml
+
+# Database dumps and migrations
+*.sql
+*.dump
+migrations/*.sql
+
+# Generated API specifications
+inaproc-api.yaml
+openapi.yaml
+swagger.yaml
+
+# Build artifacts
+build/
+dist/
+target/
+>>>>>>> 190d8a6 (Moving files to monorepo structure, and add docs folder for the API documentation)

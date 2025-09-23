@@ -1,0 +1,16 @@
+{
+  "title": "Documentation",
+  "description": "INAPROC API documentation and guides",
+  "icon": "BookOpen", 
+  "root": true,
+  "pages": [
+    "getting-started",
+    "tutorial",
+    "guides",
+    "examples",
+    "rup",
+    "tender",
+    "vendor",
+    "resources"
+  ]
+}

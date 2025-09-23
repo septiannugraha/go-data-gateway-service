@@ -1,0 +1,48 @@
+---
+title: RUP API Introduction
+description: Pengenalan RUP API untuk Rencana Umum Pengadaan
+---
+
+# RUP API
+
+## Pengenalan
+
+Rencana Umum Pengadaan (RUP) adalah bagian dari INAPROC API Gateway untuk mengelola dan mempublikasikan rencana pengadaan tahunan instansi pemerintah.
+
+## Fitur Utama
+
+- **Perencanaan**: Input dan pengelolaan RUP
+- **Publikasi**: Publikasi RUP ke publik
+- **Monitoring**: Monitoring realisasi pengadaan
+- **Analitik**: Analisis data pengadaan
+
+## Contoh Struktur Data
+
+```json
+{
+  "rup_id": "RUP-2024-001",
+  "instansi": "Kementerian XYZ",
+  "tahun_anggaran": 2024,
+  "total_pagu": 1000000000,
+  "status": "published",
+  "items": [
+    {
+      "item_id": "ITEM-001",
+      "nama_paket": "Pengadaan Komputer",
+      "kategori": "Barang",
+      "pagu": 500000000,
+      "metode": "tender_terbuka",
+      "jadwal": {
+        "mulai": "2024-03-01",
+        "selesai": "2024-12-31"
+      }
+    }
+  ]
+}
+```
+
+## Base URL
+
+```
+https://api.inaproc.id/v1/rup
+```

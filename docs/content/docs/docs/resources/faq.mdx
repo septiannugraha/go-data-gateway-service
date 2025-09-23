@@ -1,0 +1,107 @@
+---
+title: FAQ
+description: Frequently Asked Questions tentang INAPROC API Gateway
+---
+
+# Frequently Asked Questions
+
+## General
+
+### Apa itu INAPROC API Gateway?
+INAPROC API Gateway adalah platform integrasi yang menyediakan akses terpadu ke berbagai sistem pengadaan pemerintah Indonesia melalui RESTful API.
+
+### Bagaimana cara mendapatkan API Key?
+1. Daftar di [Portal Developer LKPP](https://developer.lkpp.go.id)
+2. Verifikasi email Anda
+3. Login dan generate API Key dari dashboard
+
+### Apakah API ini gratis?
+Ya, tersedia tier gratis dengan limit 100 requests/hour. Untuk kebutuhan yang lebih besar, tersedia tier berbayar.
+
+## Technical
+
+### Format data apa yang didukung?
+API mendukung format JSON untuk semua request dan response. Untuk export data, tersedia format CSV, Excel, dan PDF.
+
+### Bagaimana cara handle pagination?
+```javascript
+// Using page-based pagination
+const response = await fetch('/api/tenders?page=2&limit=20');
+
+// Response includes pagination metadata
+{
+  "data": [...],
+  "pagination": {
+    "current_page": 2,
+    "total_pages": 10,
+    "total_items": 200
+  }
+}
+```
+
+### Apa yang harus dilakukan jika mendapat error 429?
+Error 429 menandakan rate limit exceeded. Check header `Retry-After` untuk mengetahui kapan bisa retry:
+```javascript
+if (response.status === 429) {
+  const retryAfter = response.headers.get('Retry-After');
+  await sleep(retryAfter * 1000);
+  // Retry request
+}
+```
+
+## Authentication
+
+### Berapa lama token valid?
+Access token valid selama 1 jam. Gunakan refresh token untuk mendapatkan token baru tanpa login ulang.
+
+### Bagaimana cara refresh token?
+```bash
+curl -X POST https://api.inaproc.id/v1/oauth/token \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=YOUR_REFRESH_TOKEN"
+```
+
+### Apa perbedaan API Key dan OAuth token?
+- **API Key**: Simple authentication untuk testing dan development
+- **OAuth Token**: Production-ready dengan scope management dan refresh capability
+
+## Data & Privacy
+
+### Apakah data yang dikirim aman?
+Ya, semua komunikasi menggunakan HTTPS dengan TLS 1.2+. Data sensitive di-encrypt di database.
+
+### Bagaimana dengan GDPR compliance?
+API comply dengan standard privacy termasuk:
+- Data encryption
+- Access logging
+- Right to deletion
+- Data portability
+
+### Berapa lama data disimpan?
+- Request logs: 30 hari
+- Analytics data: 1 tahun
+- User data: Sampai account dihapus
+
+## Troubleshooting
+
+### API response lambat
+1. Check latency dari lokasi Anda
+2. Implement caching untuk data yang jarang berubah
+3. Use field filtering untuk reduce payload size
+4. Consider upgrading ke tier dengan rate limit lebih tinggi
+
+### Webhook tidak diterima
+1. Pastikan endpoint accessible dari internet
+2. Check firewall rules
+3. Verify webhook signature
+
+## Support
+
+### Bagaimana cara menghubungi support?
+- Email: api-support@inaproc.id
+- Forum: https://forum.inaproc.id
+- Issue Tracker: https://github.com/lkpp/api-gateway/issues
+
+### Jam operasional support
+- Weekdays: 08:00 - 17:00 WIB
+- Response time: < 24 jam untuk tier berbayar, < 48 jam untuk tier gratis

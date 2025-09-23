@@ -1,0 +1,150 @@
+---
+title: RUP Endpoints
+description: Dokumentasi endpoint API untuk Rencana Umum Pengadaan (RUP)
+---
+
+# Endpoints RUP
+
+## Rencana & Ringkasan
+
+### Rencana Pengadaan Penyedia
+```http
+GET /v1/rup/rencana/penyedia
+```
+
+Mendapatkan daftar rencana pengadaan yang menggunakan penyedia.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+- `satker_id` (optional): ID Satuan Kerja
+- `page` (optional): Nomor halaman (default: 1)
+- `limit` (optional): Jumlah item per halaman (default: 10, max: 100)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "rup_id": "RUP-2024-001",
+      "satker_nama": "Kementerian ABC",
+      "paket_nama": "Pengadaan Laptop",
+      "pagu": 500000000,
+      "metode_pengadaan": "tender_terbuka",
+      "jadwal_pemilihan": "2024-06-01",
+      "jadwal_kontrak": "2024-07-01"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 5,
+    "total_items": 50
+  }
+}
+```
+
+### Rencana Pengadaan Penyedia Konsolidasi
+```http
+GET /v1/rup/rencana/penyedia-konsolidasi
+```
+
+Mendapatkan rencana pengadaan penyedia yang sudah dikonsolidasi.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+
+### Ringkasan Rencana Pengadaan Per Satker
+```http
+GET /v1/rup/ringkasan/satker
+```
+
+Mendapatkan ringkasan rencana pengadaan per satuan kerja.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "satker_id": "12345",
+      "satker_nama": "Kementerian ABC",
+      "total_pagu": 10000000000,
+      "jumlah_paket": 25,
+      "paket_penyedia": 20,
+      "paket_swakelola": 5
+    }
+  ]
+}
+```
+
+## Realisasi
+
+### Realisasi Rencana Pengadaan Penyedia Per Satker
+```http
+GET /v1/rup/realisasi/penyedia-per-satker
+```
+
+Mendapatkan data realisasi rencana pengadaan penyedia per satuan kerja.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+- `bulan` (optional): Bulan (1-12)
+- `satker_id` (optional): ID Satuan Kerja
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "satker_id": "12345",
+      "satker_nama": "Kementerian ABC",
+      "tahun": 2024,
+      "bulan": 6,
+      "rencana_pagu": 1000000000,
+      "realisasi_pagu": 750000000,
+      "persentase_realisasi": 75.0,
+      "jumlah_paket_rencana": 10,
+      "jumlah_paket_realisasi": 7
+    }
+  ]
+}
+```
+
+### Realisasi Rencana Pengadaan Swakelola Per Satker
+```http
+GET /v1/rup/realisasi/swakelola-per-satker
+```
+
+Mendapatkan data realisasi rencana pengadaan swakelola per satuan kerja.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+- `bulan` (optional): Bulan (1-12)
+
+## Analitik
+
+### Statistik RUP
+```http
+GET /v1/rup/analitik/statistik
+```
+
+Mendapatkan statistik umum RUP.
+
+**Response:**
+```json
+{
+  "data": {
+    "total_satker": 1500,
+    "total_paket": 25000,
+    "total_pagu": 500000000000,
+    "realisasi_pagu": 375000000000,
+    "persentase_realisasi": 75.0
+  }
+}
+```

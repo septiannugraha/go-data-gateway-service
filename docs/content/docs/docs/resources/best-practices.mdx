@@ -1,0 +1,428 @@
+---
+title: Best Practices
+description: Best practices untuk menggunakan INAPROC API Gateway secara optimal
+---
+
+# Best Practices
+
+## API Design Principles
+
+### 1. Use Proper HTTP Methods
+- `GET` untuk read operations
+- `POST` untuk create operations
+- `PUT` untuk full updates
+- `PATCH` untuk partial updates
+- `DELETE` untuk delete operations
+
+### 2. Versioning
+Selalu gunakan versioning di URL:
+```
+https://api.inaproc.id/v1/...
+```
+
+### 3. Pagination
+Untuk response dengan data banyak, gunakan pagination:
+```json
+{
+  "data": [...],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 10,
+    "total_items": 100,
+    "items_per_page": 10
+  }
+}
+```
+
+## Performance Optimization
+
+### 1. Caching Strategy
+
+```javascript
+const cache = new Map();
+const CACHE_TTL = 3600000; // 1 hour
+
+async function getCachedData(key, fetchFn) {
+  const cached = cache.get(key);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  
+  const data = await fetchFn();
+  cache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+```
+
+### 2. Request Batching
+
+Instead of multiple individual requests:
+```javascript
+// Bad
+const vendor1 = await getVendor('VENDOR-001');
+const vendor2 = await getVendor('VENDOR-002');
+const vendor3 = await getVendor('VENDOR-003');
+
+// Good
+const vendors = await getVendorsBatch(['VENDOR-001', 'VENDOR-002', 'VENDOR-003']);
+```
+
+### 3. Field Filtering
+
+Request only needed fields:
+```
+GET /api/tenders?fields=id,title,budget
+```
+
+## Security Best Practices
+
+### 1. Token Management
+
+```javascript
+class TokenManager {
+  constructor() {
+    this.token = null;
+    this.expiresAt = null;
+  }
+  
+  async getToken() {
+    if (!this.token || Date.now() >= this.expiresAt) {
+      await this.refreshToken();
+    }
+    return this.token;
+  }
+  
+  async refreshToken() {
+    const response = await fetch('/oauth/token', {
+      method: 'POST',
+      body: JSON.stringify({
+        grant_type: 'client_credentials',
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET
+      })
+    });
+    
+    const data = await response.json();
+    this.token = data.access_token;
+    this.expiresAt = Date.now() + (data.expires_in * 1000);
+  }
+}
+```
+
+### 2. Input Validation
+
+Always validate input:
+```javascript
+function validateTenderRequest(data) {
+  const errors = [];
+  
+  if (!data.title || data.title.length < 10) {
+    errors.push('Title must be at least 10 characters');
+  }
+  
+  if (!data.budget || data.budget <= 0) {
+    errors.push('Budget must be positive');
+  }
+  
+  if (data.end_date <= data.start_date) {
+    errors.push('End date must be after start date');
+  }
+  
+  if (errors.length > 0) {
+    throw new ValidationError(errors);
+  }
+}
+```
+
+### 3. Rate Limiting Implementation
+
+```javascript
+class RateLimiter {
+  constructor(maxRequests, windowMs) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = [];
+  }
+  
+  async checkLimit() {
+    const now = Date.now();
+    
+    // Remove old requests
+    this.requests = this.requests.filter(
+      time => now - time < this.windowMs
+    );
+    
+    if (this.requests.length >= this.maxRequests) {
+      const oldestRequest = this.requests[0];
+      const waitTime = this.windowMs - (now - oldestRequest);
+      throw new RateLimitError(waitTime);
+    }
+    
+    this.requests.push(now);
+  }
+}
+```
+
+## Error Handling
+
+### 1. Retry Logic
+
+```javascript
+async function retryableRequest(fn, options = {}) {
+  const {
+    maxRetries = 3,
+    retryDelay = 1000,
+    exponentialBackoff = true,
+    retryCondition = (error) => error.status >= 500
+  } = options;
+  
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      
+      if (!retryCondition(error) || attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      const delay = exponentialBackoff 
+        ? retryDelay * Math.pow(2, attempt)
+        : retryDelay;
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+```
+
+### 2. Graceful Degradation
+
+```javascript
+async function getVendorWithFallback(vendorId) {
+  try {
+    // Try to get fresh data
+    return await api.getVendor(vendorId);
+  } catch (error) {
+    // Fall back to cached data
+    const cached = await cache.get(`vendor:${vendorId}`);
+    if (cached) {
+      console.warn('Using cached data due to API error');
+      return cached;
+    }
+    
+    // Fall back to default data
+    return {
+      id: vendorId,
+      name: 'Unknown Vendor',
+      status: 'unavailable'
+    };
+  }
+}
+```
+
+## Monitoring & Logging
+
+### 1. Request Logging
+
+```javascript
+class APILogger {
+  logRequest(method, url, data) {
+    console.log({
+      timestamp: new Date().toISOString(),
+      type: 'API_REQUEST',
+      method,
+      url,
+      data: this.sanitize(data)
+    });
+  }
+  
+  logResponse(status, data, duration) {
+    console.log({
+      timestamp: new Date().toISOString(),
+      type: 'API_RESPONSE',
+      status,
+      duration,
+      data: this.sanitize(data)
+    });
+  }
+  
+  logError(error) {
+    console.error({
+      timestamp: new Date().toISOString(),
+      type: 'API_ERROR',
+      error: {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      }
+    });
+  }
+  
+  sanitize(data) {
+    // Remove sensitive information
+    const sanitized = { ...data };
+    delete sanitized.password;
+    delete sanitized.api_key;
+    delete sanitized.client_secret;
+    return sanitized;
+  }
+}
+```
+
+### 2. Performance Monitoring
+
+```javascript
+class PerformanceMonitor {
+  constructor() {
+    this.metrics = [];
+  }
+  
+  async measureRequest(name, fn) {
+    const start = performance.now();
+    
+    try {
+      const result = await fn();
+      const duration = performance.now() - start;
+      
+      this.recordMetric(name, duration, 'success');
+      return result;
+    } catch (error) {
+      const duration = performance.now() - start;
+      this.recordMetric(name, duration, 'error');
+      throw error;
+    }
+  }
+  
+  recordMetric(name, duration, status) {
+    this.metrics.push({
+      name,
+      duration,
+      status,
+      timestamp: Date.now()
+    });
+    
+    // Send to monitoring service
+    if (this.metrics.length >= 100) {
+      this.flush();
+    }
+  }
+  
+  flush() {
+    // Send metrics to monitoring service
+    sendToMonitoring(this.metrics);
+    this.metrics = [];
+  }
+}
+```
+
+## Testing
+
+### 1. Unit Testing
+
+```javascript
+describe('INAPROC API', () => {
+  let client;
+  
+  beforeEach(() => {
+    client = new INAPROCClient('TEST_API_KEY');
+  });
+  
+  describe('getTenders', () => {
+    it('should return active tenders', async () => {
+      const tenders = await client.getTenders({ status: 'active' });
+      
+      expect(tenders).toBeArray();
+      expect(tenders[0]).toHaveProperty('id');
+      expect(tenders[0]).toHaveProperty('title');
+      expect(tenders[0].status).toBe('active');
+    });
+    
+    it('should handle errors gracefully', async () => {
+      client.apiKey = 'INVALID_KEY';
+      
+      await expect(client.getTenders()).rejects.toThrow('Unauthorized');
+    });
+  });
+});
+```
+
+### 2. Integration Testing
+
+```javascript
+describe('End-to-end Procurement Flow', () => {
+  it('should complete full procurement cycle', async () => {
+    // 1. Create procurement plan
+    const plan = await rup.createPlan({
+      agency: 'TEST_AGENCY',
+      year: 2024,
+      items: [{ name: 'Test Item', budget: 100000000 }]
+    });
+    
+    // 2. Create tender
+    const tender = await tender.createTender({
+      plan_id: plan.id,
+      title: 'Test Tender',
+      budget: 100000000
+    });
+    
+    // 3. Submit bid
+    const bid = await tender.submitBid(tender.id, {
+      vendor_id: 'TEST_VENDOR',
+      amount: 90000000
+    });
+    
+    // 4. Evaluate vendor
+    await vendor.evaluateVendor('TEST_VENDOR', {
+      project_id: tender.id,
+      scores: { quality: 85, timeliness: 90 }
+    });
+    
+    // Verify complete flow
+    expect(plan.id).toBeDefined();
+    expect(tender.id).toBeDefined();
+    expect(bid.id).toBeDefined();
+  });
+});
+```
+
+## Documentation
+
+### 1. Code Documentation
+
+```javascript
+/**
+ * Get list of active tenders
+ * @param {Object} params - Query parameters
+ * @param {string} params.status - Tender status (active|completed|cancelled)
+ * @param {number} params.minBudget - Minimum budget value
+ * @param {number} params.maxBudget - Maximum budget value
+ * @param {number} params.page - Page number (default: 1)
+ * @param {number} params.limit - Items per page (default: 10, max: 100)
+ * @returns {Promise<Array<Tender>>} List of tenders
+ * @throws {APIError} If request fails
+ * @example
+ * const tenders = await getTenders({
+ *   status: 'active',
+ *   minBudget: 100000000,
+ *   limit: 20
+ * });
+ */
+async function getTenders(params = {}) {
+  // Implementation
+}
+```
+
+### 2. API Documentation
+
+Always provide:
+- Clear endpoint descriptions
+- Request/response examples
+- Error codes and meanings
+- Rate limits
+- Authentication requirements

@@ -1,0 +1,87 @@
+---
+title: Pendahuluan
+description: Selamat datang di dokumentasi INAPROC API Gateway
+icon: Home
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# INAPROC API Gateway Documentation
+
+Selamat datang di dokumentasi INAPROC API Gateway. Platform ini menyediakan akses terpadu ke berbagai sistem pengadaan pemerintah Indonesia.
+
+## Apa itu INAPROC API Gateway?
+
+INAPROC API Gateway adalah platform integrasi yang memungkinkan developer dan institusi untuk mengakses berbagai layanan pengadaan pemerintah melalui satu titik akses yang aman dan terstandarisasi.
+
+## Fitur Utama
+
+<Cards>
+  <Card 
+    title="🚀 Performa Tinggi" 
+    description="Response time < 100ms, 99.9% uptime SLA, Auto-scaling infrastructure"
+  />
+  <Card 
+    title="🔒 Keamanan Berlapis" 
+    description="OAuth 2.0 authentication, Rate limiting per API key, End-to-end encryption"
+  />
+  <Card 
+    title="📊 Monitoring Real-time" 
+    description="Dashboard analytics, Usage metrics, Error tracking"
+  />
+</Cards>
+
+## Layanan yang Tersedia
+
+### Tender (Tender & Non Tender)
+Platform e-procurement untuk proses pengadaan barang/jasa pemerintah yang transparan dan akuntabel.
+
+### Vendor (Penyedia)
+Sistem evaluasi dan monitoring kinerja penyedia barang/jasa untuk memastikan kualitas pengadaan.
+
+### RUP (Rencana Umum Pengadaan)
+Platform perencanaan dan publikasi rencana pengadaan tahunan instansi pemerintah.
+
+## Quick Start
+
+### 1. Registrasi Developer Account
+```bash
+curl -X POST https://api.inaproc.id/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "developer@example.com",
+    "organization": "Nama Instansi",
+    "purpose": "Tujuan penggunaan API"
+  }'
+```
+
+### 2. Dapatkan API Key
+Setelah registrasi berhasil, Anda akan mendapatkan API key untuk mengakses layanan.
+
+### 3. Mulai Integrasi
+Gunakan API key Anda untuk mulai mengintegrasikan layanan INAPROC ke aplikasi Anda.
+
+## Membutuhkan Bantuan?
+
+<Cards>
+  <Card 
+    title="📚 Getting Started" 
+    description="Panduan lengkap untuk memulai menggunakan INAPROC API"
+    href="/docs/getting-started"
+  />
+  <Card 
+    title="📖 Spesifikasi API" 
+    description="Dokumentasi lengkap semua endpoint API yang tersedia"
+    href="/docs/spesifikasi-api"
+  />
+  <Card 
+    title="💡 Examples" 
+    description="Contoh implementasi dan best practices"
+    href="/docs/examples"
+  />
+  <Card 
+    title="🆘 Support" 
+    description="Dapatkan bantuan dari tim support kami"
+    href="/support"
+  />
+</Cards>

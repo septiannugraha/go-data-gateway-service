@@ -1,0 +1,50 @@
+---
+title: Tender & Non Tender API Introduction
+description: Pengenalan Tender & Non Tender API untuk proses pengadaan elektronik
+---
+
+# Tender & Non Tender API
+
+## Pengenalan
+
+Layanan Tender & Non Tender adalah bagian dari INAPROC API Gateway untuk memfasilitasi proses pengadaan barang/jasa pemerintah secara elektronik, mencakup tender dan non tender.
+
+## Fitur Utama
+
+- **E-Tendering**: Proses tender elektronik yang transparan
+- **Non Tender**: Pengadaan di luar mekanisme tender
+- **E-Purchasing**: Pembelian melalui e-katalog
+- **Monitoring**: Dashboard monitoring real-time
+
+## Base URL
+
+```
+Production: https://api.inaproc.id/v1
+Sandbox: https://sandbox-api.inaproc.id/v1
+```
+
+## Autentikasi
+
+Semua request harus menyertakan access token pada header Authorization.
+
+```bash
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+## Contoh Struktur Data
+
+```json
+{
+  "tender_id": "TDR-2024-001",
+  "nama_paket": "Pengadaan Laptop Kantor",
+  "instansi": "Kementerian ABC",
+  "nilai_pagu": 500000000,
+  "metode": "tender_terbuka",
+  "status": "aktif",
+  "jadwal": {
+    "pendaftaran_mulai": "2024-03-01T00:00:00Z",
+    "pendaftaran_selesai": "2024-03-15T23:59:59Z",
+    "pembukaan_penawaran": "2024-03-20T10:00:00Z"
+  }
+}
+```

@@ -1,0 +1,160 @@
+---
+title: Vendor Examples
+description: Contoh implementasi dan penggunaan Vendor API
+---
+
+# Vendor Examples
+
+## Search Vendors
+
+```javascript
+async function searchVendors(category, minScore = 80) {
+  const params = new URLSearchParams({
+    kategori: category,
+    status: 'aktif',
+    min_score: minScore,
+    limit: 20
+  });
+  
+  const response = await fetch(
+    `https://api.inaproc.id/v1/vendor/penyedia?${params}`,
+    {
+      headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+    }
+  );
+  
+  return response.json();
+}
+
+// Find qualified IT vendors
+const itVendors = await searchVendors('IT', 85);
+console.log(`Found ${itVendors.data.length} qualified IT vendors`);
+```
+
+## Evaluate Vendor Performance
+
+```python
+import requests
+
+def evaluate_vendor(vendor_id, project_id, scores, notes):
+    url = "https://api.inaproc.id/v1/vendor/evaluasi"
+    
+    payload = {
+        "vendor_id": vendor_id,
+        "project_id": project_id,
+        "evaluator_id": "USER-001",
+        "kriteria": scores,
+        "catatan": notes
+    }
+    
+    headers = {
+        "Authorization": "Bearer YOUR_TOKEN",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+
+# Submit evaluation
+evaluation = evaluate_vendor(
+    vendor_id="VDR-001",
+    project_id="PRJ-001", 
+    scores={
+        "kualitas": 85,
+        "ketepatan_waktu": 90,
+        "layanan": 88,
+        "inovasi": 75
+    },
+    notes="Vendor completed project successfully with good quality"
+)
+
+print(f"Evaluation submitted: {evaluation['evaluation_id']}")
+```
+
+## Monitor Vendor Performance
+
+```javascript
+class VendorMonitor {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.inaproc.id/v1/vendor';
+  }
+
+  async getTopPerformers(category, limit = 10) {
+    const response = await fetch(
+      `${this.baseUrl}/penyedia?kategori=${category}&status=aktif&sort=skor_kinerja&order=desc&limit=${limit}`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    return response.json();
+  }
+
+  async checkPerformanceAlerts() {
+    const response = await fetch(
+      `${this.baseUrl}/monitoring/alerts`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    
+    const alerts = await response.json();
+    
+    alerts.data.forEach(alert => {
+      if (alert.type === 'performance_decline') {
+        console.log(`⚠️  Vendor ${alert.vendor_name} performance declined to ${alert.current_score}`);
+      }
+    });
+  }
+
+  async generatePerformanceReport(vendorId) {
+    const response = await fetch(
+      `${this.baseUrl}/penyedia/${vendorId}/kinerja`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    
+    const performance = await response.json();
+    
+    return {
+      vendor_id: vendorId,
+      overall_score: performance.data.skor_keseluruhan,
+      project_count: performance.data.statistik.total_project,
+      success_rate: performance.data.statistik.success_rate,
+      recommendation: performance.data.skor_keseluruhan >= 80 ? 'Recommended' : 'Review Required'
+    };
+  }
+}
+
+// Usage
+const monitor = new VendorMonitor('YOUR_API_KEY');
+
+// Get top IT vendors
+const topIT = await monitor.getTopPerformers('IT');
+console.log('Top IT Vendors:', topIT.data.map(v => v.nama));
+
+// Check for alerts
+monitor.checkPerformanceAlerts();
+```
+
+## Vendor Comparison
+
+```javascript
+async function compareVendors(vendorIds) {
+  const comparisons = await Promise.all(
+    vendorIds.map(async (id) => {
+      const response = await fetch(
+        `https://api.inaproc.id/v1/vendor/penyedia/${id}/kinerja`,
+        { headers: { 'Authorization': 'Bearer YOUR_TOKEN' } }
+      );
+      return response.json();
+    })
+  );
+
+  return comparisons.map(comp => ({
+    vendor_id: comp.data.vendor_id,
+    score: comp.data.skor_keseluruhan,
+    projects: comp.data.statistik.total_project,
+    success_rate: comp.data.statistik.success_rate
+  })).sort((a, b) => b.score - a.score);
+}
+
+// Compare multiple vendors
+const comparison = await compareVendors(['VDR-001', 'VDR-002', 'VDR-003']);
+console.log('Vendor Ranking:', comparison);
+```

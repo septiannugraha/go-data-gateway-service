@@ -1,0 +1,60 @@
+---
+title: Changelog
+description: Log perubahan dan update terbaru INAPROC API Gateway
+---
+
+# Changelog
+
+## Version 1.2.0 (2024-01-15)
+
+### New Features
+- Added batch operations support for Tender endpoints
+- Introduced webhook events for contract management
+- New analytics endpoints for RUP
+- GraphQL support (beta)
+
+### Improvements
+- Improved response time by 40%
+- Enhanced error messages with more context
+- Better pagination support with cursor-based navigation
+- Optimized database queries for vendor performance
+
+### Bug Fixes
+- Fixed issue with date parsing in tender endpoints
+- Resolved timeout errors in large data exports
+- Fixed authentication token refresh logic
+
+### Breaking Changes
+- Deprecated `/api/v1/tenders` in favor of `/api/v1/tender/paket`
+- Changed response format for error messages
+
+---
+
+## Version 1.1.0 (2023-12-01)
+
+### New Features
+- Vendor performance tracking
+- Real-time notifications via WebSocket
+- CSV and Excel export functionality
+- Multi-language support (ID/EN)
+
+### Improvements
+- Rate limit increased to 1000 requests/hour for production
+- Added request ID for better debugging
+- Improved documentation with more examples
+
+### Bug Fixes
+- Fixed pagination issue in vendor list endpoint
+- Resolved currency formatting in budget fields
+
+---
+
+## Version 1.0.0 (2023-10-15)
+
+### Initial Release
+- Tender management endpoints
+- Vendor evaluation endpoints
+- RUP procurement planning endpoints
+- OAuth 2.0 authentication
+- Basic webhook support
+- SDK for JavaScript, Python, Java, PHP, Go

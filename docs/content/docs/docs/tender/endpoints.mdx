@@ -1,0 +1,214 @@
+---
+title: Tender Endpoints
+description: Dokumentasi endpoint API untuk Tender & Non Tender
+---
+
+# Endpoints Tender & Non Tender
+
+## Paket Tender
+
+### Rincian Paket Tender
+```http
+GET /v1/tender/paket
+```
+
+Mendapatkan daftar paket tender.
+
+**Query Parameters:**
+- `lpse_id` (optional): ID LPSE
+- `tahun` (optional): Tahun anggaran
+- `bulan` (optional): Bulan (1-12)
+- `status` (optional): Status tender (aktif|selesai|batal)
+- `page` (optional): Nomor halaman (default: 1)
+- `limit` (optional): Jumlah item per halaman (default: 10, max: 100)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "tender_id": "TDR-2024-001",
+      "nama_paket": "Pengadaan Laptop Kantor",
+      "instansi": "Kementerian ABC",
+      "satker": "Biro Umum",
+      "nilai_pagu": 500000000,
+      "metode": "tender_terbuka",
+      "status": "aktif",
+      "jadwal": {
+        "pendaftaran_mulai": "2024-03-01T00:00:00Z",
+        "pendaftaran_selesai": "2024-03-15T23:59:59Z",
+        "pembukaan_penawaran": "2024-03-20T10:00:00Z"
+      },
+      "lokasi": "Jakarta Pusat",
+      "kategori": "Barang"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 10,
+    "total_items": 100
+  }
+}
+```
+
+### Paket Tender Sedang Berjalan
+```http
+GET /v1/tender/paket/berjalan
+```
+
+Mendapatkan paket tender yang sedang dalam proses.
+
+### Paket Tender Diulang
+```http
+GET /v1/tender/paket/diulang
+```
+
+Mendapatkan paket tender yang diulang.
+
+### Detail Paket Tender
+```http
+GET /v1/tender/paket/{tender_id}
+```
+
+Mendapatkan detail lengkap sebuah paket tender.
+
+**Response:**
+```json
+{
+  "data": {
+    "tender_id": "TDR-2024-001",
+    "nama_paket": "Pengadaan Laptop Kantor",
+    "instansi": "Kementerian ABC",
+    "nilai_pagu": 500000000,
+    "metode": "tender_terbuka",
+    "status": "aktif",
+    "spesifikasi": "Laptop dengan spek minimal...",
+    "syarat_kualifikasi": [...],
+    "dokumen_tender": [...],
+    "peserta": [
+      {
+        "vendor_id": "VDR-001",
+        "nama_vendor": "PT ABC",
+        "status": "terdaftar"
+      }
+    ]
+  }
+}
+```
+
+## Penawaran/Bid
+
+### Submit Penawaran
+```http
+POST /v1/tender/paket/{tender_id}/bid
+```
+
+Submit penawaran untuk tender.
+
+**Request Body:**
+```json
+{
+  "vendor_id": "VDR-001",
+  "harga_penawaran": 450000000,
+  "dokumen_penawaran": [
+    {
+      "nama": "proposal_teknis.pdf",
+      "url": "https://storage.example.com/file1.pdf"
+    }
+  ],
+  "spesifikasi_teknis": "Detail spesifikasi...",
+  "jadwal_pelaksanaan": "90 hari kalender"
+}
+```
+
+### Update Penawaran
+```http
+PUT /v1/tender/paket/{tender_id}/bid/{bid_id}
+```
+
+Update penawaran yang sudah disubmit.
+
+### Withdraw Penawaran
+```http
+DELETE /v1/tender/paket/{tender_id}/bid/{bid_id}
+```
+
+Tarik penawaran yang sudah disubmit.
+
+## Rekap & Analitik
+
+### Rekap Bulanan (CSV)
+```http
+GET /v1/tender/rekap/bulanan
+```
+
+**Query Parameters (Required):**
+- `lpse_id`: ID LPSE
+- `tahun`: Tahun (>= 2000)
+- `bulan`: Bulan (1-12)
+
+### Rekap Tahunan (CSV)
+```http
+GET /v1/tender/rekap/tahunan
+```
+
+**Query Parameters (Required):**
+- `lpse_id`: ID LPSE
+- `tahun`: Tahun (>= 2000)
+
+### Rekap Peserta Tender (CSV)
+```http
+GET /v1/tender/rekap/peserta
+```
+
+### Statistik Tender
+```http
+GET /v1/tender/analitik/statistik
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "total_tender": 1500,
+    "tender_aktif": 250,
+    "tender_selesai": 1200,
+    "tender_batal": 50,
+    "total_nilai": 15000000000000,
+    "rata_rata_peserta": 5.2,
+    "efisiensi_rata": 12.5
+  }
+}
+```
+
+## Non Tender
+
+### Paket Non Tender
+```http
+GET /v1/tender/non-tender/paket
+```
+
+Mendapatkan daftar paket non tender (penunjukan langsung, dll).
+
+### Realisasi Non Tender
+```http
+GET /v1/tender/non-tender/realisasi
+```
+
+Mendapatkan data realisasi paket non tender.
+
+## Monitoring
+
+### Status Real-time
+```http
+GET /v1/tender/monitoring/realtime
+```
+
+Mendapatkan status real-time dari semua tender yang sedang berjalan.
+
+### Alert & Notification
+```http
+GET /v1/tender/monitoring/alerts
+```
+
+Mendapatkan alert dan notifikasi terkait tender.

@@ -1,0 +1,148 @@
+---
+title: Tender Examples
+description: Contoh implementasi dan penggunaan Tender & Non Tender API
+---
+
+# Tender Examples
+
+## Search Active Tenders
+
+```javascript
+async function searchActiveTenders(category = null, minBudget = null) {
+  const params = new URLSearchParams({
+    status: 'aktif',
+    limit: 20
+  });
+  
+  if (category) params.append('kategori', category);
+  if (minBudget) params.append('min_pagu', minBudget);
+  
+  const response = await fetch(
+    `https://api.inaproc.id/v1/tender/paket?${params}`,
+    {
+      headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+    }
+  );
+  
+  return response.json();
+}
+
+// Usage
+const itTenders = await searchActiveTenders('IT', 100000000);
+console.log(`Found ${itTenders.data.length} active IT tenders`);
+```
+
+## Submit Bid
+
+```python
+import requests
+
+def submit_bid(tender_id, vendor_id, bid_amount, documents):
+    url = f"https://api.inaproc.id/v1/tender/paket/{tender_id}/bid"
+    
+    payload = {
+        "vendor_id": vendor_id,
+        "harga_penawaran": bid_amount,
+        "dokumen_penawaran": documents,
+        "spesifikasi_teknis": "Sesuai dengan spesifikasi yang diminta",
+        "jadwal_pelaksanaan": "60 hari kalender"
+    }
+    
+    headers = {
+        "Authorization": "Bearer YOUR_TOKEN",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+
+# Submit bid
+bid_result = submit_bid(
+    tender_id="TDR-2024-001",
+    vendor_id="VDR-001", 
+    bid_amount=450000000,
+    documents=[
+        {"nama": "proposal.pdf", "url": "https://storage.com/doc1.pdf"}
+    ]
+)
+
+print(f"Bid submitted with ID: {bid_result['bid_id']}")
+```
+
+## Monitor Tender Progress
+
+```javascript
+class TenderMonitor {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.baseUrl = 'https://api.inaproc.id/v1/tender';
+  }
+
+  async getTenderStatus(tenderId) {
+    const response = await fetch(
+      `${this.baseUrl}/paket/${tenderId}`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    return response.json();
+  }
+
+  async checkDeadlines() {
+    const response = await fetch(
+      `${this.baseUrl}/monitoring/alerts`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    
+    const alerts = await response.json();
+    
+    alerts.data.forEach(alert => {
+      if (alert.type === 'deadline_approaching') {
+        console.log(`⚠️  Tender ${alert.tender_id} deadline in ${alert.days_left} days`);
+      }
+    });
+  }
+
+  async generateReport(period) {
+    const response = await fetch(
+      `${this.baseUrl}/rekap/bulanan?lpse_id=123&tahun=2024&bulan=6`,
+      { headers: { 'Authorization': `Bearer ${this.apiKey}` } }
+    );
+    
+    // Response is CSV format
+    const csvData = await response.text();
+    return csvData;
+  }
+}
+
+// Usage
+const monitor = new TenderMonitor('YOUR_API_KEY');
+monitor.checkDeadlines();
+```
+
+## Real-time Tender Updates
+
+```javascript
+// WebSocket connection for real-time updates
+const ws = new WebSocket('wss://api.inaproc.id/v1/tender/ws');
+
+ws.onmessage = (event) => {
+  const update = JSON.parse(event.data);
+  
+  switch(update.type) {
+    case 'new_tender':
+      console.log('New tender published:', update.data.nama_paket);
+      break;
+    case 'bid_submitted':
+      console.log('New bid submitted for:', update.data.tender_id);
+      break;
+    case 'tender_closed':
+      console.log('Tender closed:', update.data.tender_id);
+      break;
+  }
+};
+
+// Subscribe to specific tender updates
+ws.send(JSON.stringify({
+  action: 'subscribe',
+  tender_id: 'TDR-2024-001'
+}));
+```

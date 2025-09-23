@@ -1,0 +1,67 @@
+---
+title: Tender Authentication
+description: Panduan autentikasi untuk Tender & Non Tender API
+---
+
+# Tender Authentication
+
+## Required Scopes
+
+Untuk mengakses Tender & Non Tender API, Anda memerlukan scope berikut:
+
+- `tender.read` - Read access ke semua endpoint tender
+- `tender.write` - Write access untuk management tender (Admin only)
+- `tender.bid` - Submit dan manage bid/penawaran
+
+## Getting Access Token
+
+```bash
+curl -X POST https://api.inaproc.id/v1/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=tender.read tender.bid"
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer", 
+  "expires_in": 3600,
+  "scope": "tender.read tender.bid"
+}
+```
+
+## Making Authenticated Requests
+
+```bash
+curl -X GET https://api.inaproc.id/v1/tender/paket \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## Rate Limits
+
+Tender API memiliki rate limit khusus:
+
+| Endpoint Category | Rate Limit |
+|------------------|------------|
+| Public tender data | 200 req/min |
+| Bid submissions | 10 req/min |
+| Tender management | 50 req/min |
+
+## Permissions
+
+| Role | Permissions |
+|------|-------------|
+| Public | Read access ke tender yang dipublikasi |
+| Registered Vendor | Read + bid submission |
+| Agency Admin | Read/Write access untuk tender instansi sendiri |
+| System Admin | Full access |
+
+## Security Notes
+
+- Bid submissions require additional verification
+- All tender-related actions are logged for audit
+- API keys untuk production harus dari environment terverifikasi

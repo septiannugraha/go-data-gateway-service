@@ -1,0 +1,158 @@
+---
+title: Rate Limiting
+description: Panduan rate limiting dan best practices untuk penggunaan INAPROC API Gateway
+---
+
+# Rate Limiting
+
+## Overview
+
+INAPROC API Gateway menerapkan rate limiting untuk memastikan fair usage dan menjaga performa sistem.
+
+## Rate Limits
+
+### Default Limits
+
+| Tier | Requests per Hour | Requests per Minute | Burst Limit |
+|------|------------------|---------------------|-------------|
+| Free | 100 | 10 | 20 |
+| Basic | 1,000 | 50 | 100 |
+| Professional | 10,000 | 200 | 500 |
+| Enterprise | Custom | Custom | Custom |
+
+### Per-Endpoint Limits
+
+Beberapa endpoint memiliki limit khusus:
+
+| Endpoint | Rate Limit |
+|----------|------------|
+| `/auth/*` | 10 req/min |
+| `/tender/paket` | 100 req/min |
+| `/vendor/vendors/*/performance` | 50 req/min |
+| `/rup/rencana/penyedia` | 100 req/min |
+
+## Rate Limit Headers
+
+Setiap response API menyertakan header rate limit:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-RateLimit-Reset: 1640995200
+X-RateLimit-Reset-After: 3600
+```
+
+### Header Descriptions
+
+- `X-RateLimit-Limit`: Total request yang diizinkan
+- `X-RateLimit-Remaining`: Sisa request yang tersedia
+- `X-RateLimit-Reset`: Unix timestamp kapan limit reset
+- `X-RateLimit-Reset-After`: Detik sampai limit reset
+
+## Handling Rate Limits
+
+### Retry After
+
+Ketika rate limit tercapai, API akan return HTTP 429:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "API rate limit exceeded",
+    "retry_after": 3600
+  }
+}
+```
+
+### Best Practices
+
+1. **Implement Exponential Backoff**
+```javascript
+async function apiCallWithRetry(url, options, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After') || 60;
+        await sleep(retryAfter * 1000);
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await sleep(Math.pow(2, i) * 1000);
+    }
+  }
+}
+```
+
+2. **Cache Responses**
+```javascript
+const cache = new Map();
+
+async function getCachedData(key, fetchFn, ttl = 3600) {
+  if (cache.has(key)) {
+    const { data, timestamp } = cache.get(key);
+    if (Date.now() - timestamp < ttl * 1000) {
+      return data;
+    }
+  }
+  
+  const data = await fetchFn();
+  cache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+```
+
+3. **Batch Requests**
+```javascript
+// Instead of multiple calls
+const results = [];
+for (const id of ids) {
+  results.push(await getVendor(id));
+}
+
+// Use batch endpoint
+const results = await getVendorsBatch(ids);
+```
+
+## Requesting Higher Limits
+
+Untuk meningkatkan rate limit:
+
+1. Login ke Developer Portal
+2. Navigasi ke Settings > API Limits
+3. Pilih tier yang diinginkan
+4. Submit request dengan justifikasi
+
+## Monitoring Usage
+
+### Dashboard
+Monitor penggunaan API Anda di Dashboard Developer Portal.
+
+### API Endpoint
+```bash
+curl -X GET https://api.inaproc.id/v1/usage/stats \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "period": "2024-01-01T00:00:00Z/2024-01-31T23:59:59Z",
+  "total_requests": 5432,
+  "rate_limit": 10000,
+  "endpoints": {
+    "/tender/paket": 2100,
+    "/vendor/penyedia": 1500,
+    "/rup/rencana/penyedia": 1832
+  }
+}
+```
+
+## Rate Limit Bypass
+
+Enterprise customers dapat request untuk bypass rate limit pada endpoint tertentu. Hubungi enterprise@inaproc.id.

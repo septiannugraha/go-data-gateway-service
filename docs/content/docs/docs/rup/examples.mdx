@@ -1,0 +1,270 @@
+---
+title: RUP Examples
+description: Contoh implementasi dan penggunaan RUP API
+---
+
+# RUP Examples
+
+## Procurement Planning System
+
+```python
+import requests
+from datetime import datetime
+import pandas as pd
+
+class ProcurementPlanner:
+    def __init__(self, api_key):
+        self.base_url = "https://api.inaproc.id/v1/rup"
+        self.headers = {"Authorization": f"Bearer {api_key}"}
+    
+    def create_annual_plan(self, agency, year, items):
+        """Create annual procurement plan"""
+        payload = {
+            "agency": agency,
+            "year": year,
+            "items": items
+        }
+        
+        response = requests.post(
+            f"{self.base_url}/plans",
+            json=payload,
+            headers=self.headers
+        )
+        return response.json()
+    
+    def add_plan_item(self, plan_id, item):
+        """Add item to existing plan"""
+        response = requests.post(
+            f"{self.base_url}/plans/{plan_id}/items",
+            json=item,
+            headers=self.headers
+        )
+        return response.json()
+    
+    def analyze_budget_allocation(self, plan_id):
+        """Analyze budget allocation by category"""
+        response = requests.get(
+            f"{self.base_url}/plans/{plan_id}",
+            headers=self.headers
+        )
+        plan = response.json()
+        
+        df = pd.DataFrame(plan['items'])
+        
+        # Group by category
+        allocation = df.groupby('category')['estimated_value'].sum()
+        
+        # Calculate percentages
+        total = allocation.sum()
+        percentages = (allocation / total * 100).round(2)
+        
+        return {
+            'total_budget': total,
+            'by_category': allocation.to_dict(),
+            'percentages': percentages.to_dict()
+        }
+    
+    def track_realization(self, plan_id):
+        """Track plan realization progress"""
+        response = requests.get(
+            f"{self.base_url}/plans/{plan_id}/realization",
+            headers=self.headers
+        )
+        realization = response.json()
+        
+        return {
+            'progress_percentage': realization['realization_percentage'],
+            'total_savings': sum(item['savings'] for item in realization['items']),
+            'completed_items': len([i for i in realization['items'] if i['status'] == 'completed']),
+            'pending_items': len([i for i in realization['items'] if i['status'] == 'pending'])
+        }
+
+# Usage
+planner = ProcurementPlanner("YOUR_API_KEY")
+
+# Create plan with items
+items = [
+    {
+        "name": "Pengadaan Komputer Desktop",
+        "category": "Barang",
+        "estimated_value": 500000000,
+        "procurement_method": "Tender",
+        "planned_date": "2024-Q2",
+        "quantity": 100,
+        "unit": "Unit"
+    },
+    {
+        "name": "Jasa Konsultan IT",
+        "category": "Jasa",
+        "estimated_value": 300000000,
+        "procurement_method": "Seleksi",
+        "planned_date": "2024-Q3"
+    }
+]
+
+plan = planner.create_annual_plan("KEMENKEU", 2024, items)
+print(f"Plan created: {plan['id']}")
+
+# Analyze budget
+analysis = planner.analyze_budget_allocation(plan['id'])
+print(f"Total budget: {analysis['total_budget']:,}")
+print(f"Allocation: {analysis['by_category']}")
+
+# Track progress
+progress = planner.track_realization(plan['id'])
+print(f"Realization: {progress['progress_percentage']}%")
+print(f"Total savings: {progress['total_savings']:,}")
+```
+
+## Budget Monitoring Dashboard
+
+```typescript
+interface BudgetDashboard {
+  getPlanSummary(year: number): Promise<PlanSummary>;
+  getRealizationStatus(planId: string): Promise<RealizationStatus>;
+  generateReport(planId: string, format: string): Promise<string>;
+}
+
+class RUPDashboard implements BudgetDashboard {
+  private apiKey: string;
+  private baseUrl = 'https://api.inaproc.id/v1/rup';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async getPlanSummary(year: number): Promise<any> {
+    const response = await fetch(
+      `${this.baseUrl}/analitik/budget-summary?year=${year}`,
+      {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      }
+    );
+    return response.json();
+  }
+
+  async getRealizationStatus(planId: string): Promise<any> {
+    const response = await fetch(
+      `${this.baseUrl}/plans/${planId}/realization`,
+      {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      }
+    );
+    return response.json();
+  }
+
+  async generateReport(planId: string, format: string = 'pdf'): Promise<string> {
+    const response = await fetch(
+      `${this.baseUrl}/plans/${planId}/export?format=${format}`,
+      {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      }
+    );
+    const data = await response.json();
+    return data.download_url;
+  }
+
+  async compareYearOverYear(currentYear: number): Promise<any> {
+    const current = await this.getPlanSummary(currentYear);
+    const previous = await this.getPlanSummary(currentYear - 1);
+
+    return {
+      currentYear: {
+        total: current.total_budget,
+        items: current.total_items
+      },
+      previousYear: {
+        total: previous.total_budget,
+        items: previous.total_items
+      },
+      growth: {
+        budget: ((current.total_budget - previous.total_budget) / previous.total_budget * 100).toFixed(2),
+        items: ((current.total_items - previous.total_items) / previous.total_items * 100).toFixed(2)
+      }
+    };
+  }
+
+  async getDelayedItems(planId: string): Promise<any[]> {
+    const realization = await this.getRealizationStatus(planId);
+    const currentQuarter = Math.floor((new Date().getMonth() + 3) / 3);
+    
+    return realization.items.filter((item: any) => {
+      const plannedQuarter = parseInt(item.planned_date.split('-Q')[1]);
+      return plannedQuarter < currentQuarter && item.status === 'pending';
+    });
+  }
+}
+
+// Usage
+async function monitorBudget() {
+  const dashboard = new RUPDashboard('YOUR_API_KEY');
+
+  // Get summary for 2024
+  const summary = await dashboard.getPlanSummary(2024);
+  console.log('Budget Summary:', summary);
+
+  // Compare with previous year
+  const comparison = await dashboard.compareYearOverYear(2024);
+  console.log(`Budget growth: ${comparison.growth.budget}%`);
+
+  // Check delayed items
+  const delayed = await dashboard.getDelayedItems('RUP-2024-001');
+  if (delayed.length > 0) {
+    console.log(`Alert: ${delayed.length} items are delayed`);
+    delayed.forEach(item => {
+      console.log(`- ${item.name}: planned for ${item.planned_date}`);
+    });
+  }
+
+  // Generate report
+  const reportUrl = await dashboard.generateReport('RUP-2024-001', 'excel');
+  console.log('Report available at:', reportUrl);
+}
+
+monitorBudget();
+```
+
+## Quick Examples
+
+### Get RUP Statistics
+```bash
+curl -X GET "https://api.inaproc.id/v1/rup/analitik/statistik" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Search RUP Plans
+```javascript
+const searchRUP = async (query) => {
+  const response = await fetch(
+    `https://api.inaproc.id/v1/rup/rencana/penyedia?q=${query}&limit=20`,
+    {
+      headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+    }
+  );
+  return response.json();
+};
+
+// Search for IT procurement
+const itProcurement = await searchRUP('komputer laptop IT');
+```
+
+### Monitor Realization
+```python
+def check_realization_progress(satker_id, year):
+    response = requests.get(
+        f"https://api.inaproc.id/v1/rup/realisasi/penyedia-per-satker",
+        params={"satker_id": satker_id, "tahun": year},
+        headers={"Authorization": "Bearer YOUR_TOKEN"}
+    )
+    
+    data = response.json()
+    
+    for satker in data['data']:
+        progress = satker['persentase_realisasi']
+        if progress < 50:
+            print(f"⚠️  {satker['satker_nama']}: {progress}% realization")
+        else:
+            print(f"✅ {satker['satker_nama']}: {progress}% realization")
+
+check_realization_progress("12345", 2024)
+```

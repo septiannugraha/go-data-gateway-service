@@ -1,0 +1,134 @@
+---
+title: Vendor Endpoints
+description: Dokumentasi endpoint API untuk Vendor
+---
+
+# Vendor Endpoints
+
+## Data Vendor
+
+### Daftar Vendor
+```http
+GET /v1/vendor/penyedia
+```
+
+**Query Parameters:**
+- `kategori` (optional): Kategori vendor
+- `status` (optional): Status vendor (aktif|tidak_aktif|blacklist)
+- `kota` (optional): Kota domisili vendor
+- `page` (optional): Nomor halaman
+- `limit` (optional): Jumlah item per halaman
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "vendor_id": "VDR-001",
+      "nama": "PT ABC Technology",
+      "npwp": "01.234.567.8-901.000",
+      "status": "aktif",
+      "kategori": ["IT", "Konsultan"],
+      "kota": "Jakarta",
+      "skor_kinerja": 85.5
+    }
+  ]
+}
+```
+
+### Detail Vendor
+```http
+GET /v1/vendor/penyedia/{vendor_id}
+```
+
+### Kinerja Vendor
+```http
+GET /v1/vendor/penyedia/{vendor_id}/kinerja
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "vendor_id": "VDR-001",
+    "skor_keseluruhan": 85.5,
+    "level": "Baik",
+    "evaluasi_terakhir": "2024-01-15",
+    "riwayat_project": [
+      {
+        "project_id": "PRJ-001",
+        "nama_project": "Pengadaan Laptop",
+        "nilai_kontrak": 500000000,
+        "skor": 88.0,
+        "status": "selesai"
+      }
+    ],
+    "statistik": {
+      "total_project": 25,
+      "success_rate": 92.0,
+      "avg_completion_time": 85,
+      "avg_quality_score": 87.5
+    }
+  }
+}
+```
+
+## Evaluasi
+
+### Submit Evaluasi
+```http
+POST /v1/vendor/evaluasi
+```
+
+**Request Body:**
+```json
+{
+  "vendor_id": "VDR-001",
+  "project_id": "PRJ-001",
+  "evaluator_id": "USER-001",
+  "kriteria": {
+    "kualitas": 85,
+    "ketepatan_waktu": 90,
+    "layanan": 88,
+    "inovasi": 75
+  },
+  "catatan": "Vendor menyelesaikan project dengan baik"
+}
+```
+
+### History Evaluasi
+```http
+GET /v1/vendor/evaluasi/history/{vendor_id}
+```
+
+## Monitoring
+
+### Vendor Performance Dashboard
+```http
+GET /v1/vendor/monitoring/dashboard
+```
+
+### Alert Vendor
+```http
+GET /v1/vendor/monitoring/alerts
+```
+
+## Analitik
+
+### Statistik Vendor
+```http
+GET /v1/vendor/analitik/statistik
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "total_vendor": 5000,
+    "vendor_aktif": 4500,
+    "vendor_blacklist": 50,
+    "avg_performance": 82.5,
+    "top_categories": ["IT", "Konstruksi", "Konsultan"]
+  }
+}
+```

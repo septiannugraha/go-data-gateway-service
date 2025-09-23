@@ -1,0 +1,60 @@
+---
+title: RUP Authentication
+description: Panduan autentikasi untuk RUP API
+---
+
+# RUP Authentication
+
+## Required Scopes
+
+Untuk mengakses RUP API, Anda memerlukan scope berikut:
+
+- `rup.read` - Read access ke semua endpoint RUP
+- `rup.write` - Write access untuk management RUP (Admin only)
+
+## Getting Access Token
+
+```bash
+curl -X POST https://api.inaproc.id/v1/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=rup.read"
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "rup.read"
+}
+```
+
+## Making Authenticated Requests
+
+```bash
+curl -X GET https://api.inaproc.id/v1/rup/rencana/penyedia \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## Rate Limits
+
+RUP API memiliki rate limit khusus:
+
+| Endpoint Category | Rate Limit |
+|------------------|------------|
+| Rencana endpoints | 100 req/min |
+| Realisasi endpoints | 50 req/min |
+| Analitik endpoints | 20 req/min |
+
+## Permissions
+
+| Role | Permissions |
+|------|-------------|
+| Public | Read access ke data yang dipublikasi |
+| Registered Developer | Read access ke semua data |
+| Agency Admin | Read/Write access untuk data instansi sendiri |
+| System Admin | Full access |

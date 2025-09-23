@@ -1,0 +1,4 @@
+{
+  "title": "RUP API",
+  "pages": ["intro", "authentication", "endpoints", "examples"]
+}

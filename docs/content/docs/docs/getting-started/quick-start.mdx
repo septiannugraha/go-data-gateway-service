@@ -1,0 +1,100 @@
+---
+title: Quick Start
+description: Panduan cepat untuk memulai menggunakan INAPROC API Gateway dalam 5 menit
+---
+
+# Quick Start
+
+## Memulai dengan INAPROC API Gateway
+
+Panduan ini akan membantu Anda untuk memulai menggunakan INAPROC API Gateway dalam 5 menit.
+
+### Langkah 1: Registrasi Developer Account
+
+Daftar untuk mendapatkan akun developer di [Portal Developer LKPP](https://developer.lkpp.go.id).
+
+```bash
+curl -X POST https://api.inaproc.id/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "developer@instansi.go.id",
+    "nama": "Nama Lengkap",
+    "instansi": "Nama Instansi",
+    "tujuan": "Tujuan penggunaan API"
+  }'
+```
+
+### Langkah 2: Aktivasi Akun
+
+Cek email Anda untuk link aktivasi. Klik link tersebut untuk mengaktifkan akun Anda.
+
+### Langkah 3: Dapatkan API Key
+
+Setelah login ke portal developer, generate API key dari dashboard.
+
+### Langkah 4: Test API Call Pertama
+
+```bash
+# Test endpoint
+curl -X GET https://api.inaproc.id/v1/health \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Langkah 5: Eksplorasi Endpoints
+
+Gunakan Postman Collection atau Swagger UI untuk eksplorasi endpoint yang tersedia.
+
+## Contoh Implementasi
+
+### JavaScript/Node.js
+```javascript
+const axios = require('axios');
+
+const apiClient = axios.create({
+  baseURL: 'https://api.inaproc.id/v1',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  }
+});
+
+// Get daftar tender
+async function getTenders() {
+  try {
+    const response = await apiClient.get('/tender/paket');
+    console.log(response.data);
+  } catch (error) {
+    console.error('Error:', error.response.data);
+  }
+}
+```
+
+### Python
+```python
+import requests
+
+api_key = "YOUR_API_KEY"
+base_url = "https://api.inaproc.id/v1"
+
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json"
+}
+
+# Get daftar tender
+response = requests.get(f"{base_url}/tender/paket", headers=headers)
+print(response.json())
+```
+
+## Environment
+
+| Environment | Base URL | Rate Limit |
+|------------|----------|------------|
+| Production | `https://api.inaproc.id/v1` | 1000 req/hour |
+| Sandbox | `https://sandbox-api.inaproc.id/v1` | 100 req/hour |
+
+## Bantuan
+
+Jika mengalami kendala, hubungi kami di:
+- Email: api-support@inaproc.id
+- Forum: https://forum.inaproc.id

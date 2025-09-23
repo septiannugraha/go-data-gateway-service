@@ -1,0 +1,4 @@
+{
+  "title": "Vendor API",
+  "pages": ["intro", "authentication", "endpoints", "examples"]
+}
