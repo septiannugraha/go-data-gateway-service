@@ -12,8 +12,9 @@ import (
 
 // BigQueryWrapper wraps the BigQueryClient to implement DataSource interface
 type BigQueryWrapper struct {
-	client *clients.BigQueryClient
-	logger *zap.Logger
+	client    *clients.BigQueryClient
+	logger    *zap.Logger
+	sanitizer *SQLSanitizer
 }
 
 // NewBigQueryWrapper creates a new BigQuery wrapper that implements DataSource
@@ -23,9 +24,15 @@ func NewBigQueryWrapper(cfg config.BigQueryConfig, logger *zap.Logger) (*BigQuer
 		return nil, fmt.Errorf("failed to create BigQuery client: %w", err)
 	}
 
+	// Initialize sanitizer with allowed tables whitelist
+	sanitizer := NewSQLSanitizer()
+	secConfig := config.GetDefaultSecurityConfig()
+	sanitizer.SetAllowedTables(secConfig.AllowedBigQueryTables)
+
 	return &BigQueryWrapper{
-		client: client,
-		logger: logger,
+		client:    client,
+		logger:    logger,
+		sanitizer: sanitizer,
 	}, nil
 }
 
@@ -69,9 +76,8 @@ func (w *BigQueryWrapper) ExecuteQuery(ctx context.Context, query string, opts *
 
 // GetData retrieves data with filters and pagination
 func (w *BigQueryWrapper) GetData(ctx context.Context, table string, opts *QueryOptions) (*QueryResult, error) {
-	// Sanitize table name to prevent SQL injection
-	sanitizer := NewSQLSanitizer()
-	safeTable, err := sanitizer.ValidateTableName(table)
+	// Sanitize table name to prevent SQL injection (uses whitelist)
+	safeTable, err := w.sanitizer.ValidateTableName(table)
 	if err != nil {
 		return nil, fmt.Errorf("invalid table name: %w", err)
 	}

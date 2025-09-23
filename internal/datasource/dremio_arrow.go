@@ -23,14 +23,15 @@ import (
 
 // DremioArrowClient implements DataSource using Arrow Flight SQL
 type DremioArrowClient struct {
-	client   flight.Client
-	pool     *ArrowConnectionPool // Optional connection pool
-	config   *DremioConfig
-	logger   *zap.Logger
-	cache    *cache.Cache
-	memAlloc memory.Allocator
-	ctx      context.Context
-	usePool  bool
+	client    flight.Client
+	pool      *ArrowConnectionPool // Optional connection pool
+	config    *DremioConfig
+	logger    *zap.Logger
+	cache     *cache.Cache
+	memAlloc  memory.Allocator
+	ctx       context.Context
+	usePool   bool
+	sanitizer *SQLSanitizer
 }
 
 // DremioConfig holds Dremio connection configuration
