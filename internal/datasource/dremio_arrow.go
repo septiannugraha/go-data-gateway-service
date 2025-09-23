@@ -307,18 +307,11 @@ func (d *DremioArrowClient) GetData(ctx context.Context, table string, opts *Que
 		table = d.config.Project + "." + table
 	}
 
-	query := fmt.Sprintf("SELECT * FROM %s", table)
-
-	if opts != nil {
-		if opts.OrderBy != "" {
-			query += fmt.Sprintf(" ORDER BY %s %s", opts.OrderBy, opts.OrderDir)
-		}
-		if opts.Limit > 0 {
-			query += fmt.Sprintf(" LIMIT %d", opts.Limit)
-			if opts.Offset > 0 {
-				query += fmt.Sprintf(" OFFSET %d", opts.Offset)
-			}
-		}
+	// Sanitize inputs to prevent SQL injection
+	sanitizer := NewSQLSanitizer()
+	query, err := sanitizer.BuildSafeTableQuery(table, opts)
+	if err != nil {
+		return nil, fmt.Errorf("query validation failed: %w", err)
 	}
 
 	return d.ExecuteQuery(ctx, query, opts)

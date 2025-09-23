@@ -69,8 +69,15 @@ func (w *BigQueryWrapper) ExecuteQuery(ctx context.Context, query string, opts *
 
 // GetData retrieves data with filters and pagination
 func (w *BigQueryWrapper) GetData(ctx context.Context, table string, opts *QueryOptions) (*QueryResult, error) {
+	// Sanitize table name to prevent SQL injection
+	sanitizer := NewSQLSanitizer()
+	safeTable, err := sanitizer.ValidateTableName(table)
+	if err != nil {
+		return nil, fmt.Errorf("invalid table name: %w", err)
+	}
+
 	// Build query with LIMIT for cost safety
-	query := fmt.Sprintf("SELECT * FROM `%s`", table)
+	query := fmt.Sprintf("SELECT * FROM `%s`", safeTable)
 
 	if opts != nil {
 		if opts.Limit > 0 {
