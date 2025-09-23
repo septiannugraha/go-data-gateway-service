@@ -86,4 +86,4 @@ nvim-linux64/
 *.tmp
 
 # Docker volumes
-data/
+data//talks/
