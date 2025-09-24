@@ -278,6 +278,23 @@ start.sh
 data/
 
 # =============================================================================
+# SECURITY - CRITICAL: Files with potential credentials
+# =============================================================================
+
+# Test files with potential credentials - NEVER commit these
+*_auth_test.go
+*_credentials_test.go
+*_secret_test.go
+*_personal_test.go
+test_with_real_creds.go
+
+# Files that might contain real passwords
+*.credentials
+*_secret*
+credentials.json
+secrets.yaml
+
+# =============================================================================
 # INTERNAL NOTES AND TEST DOCUMENTATION (Per user request - exclude from commits)
 # =============================================================================
 

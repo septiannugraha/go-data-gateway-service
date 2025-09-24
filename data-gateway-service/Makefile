@@ -62,6 +62,30 @@ test-e2e:
 	@$(GOTEST) -v -run E2E -race -timeout $(INTEGRATION_TEST_TIMEOUT) ./test/e2e/...
 	@echo "${GREEN}E2E tests passed!${NC}"
 
+## test-api: Run API tests
+test-api:
+	@echo "${YELLOW}Running API tests...${NC}"
+	@$(GOTEST) -v -race -timeout $(INTEGRATION_TEST_TIMEOUT) ./test/api/...
+	@echo "${GREEN}API tests passed!${NC}"
+
+## test-api-script: Run API tests using shell script
+test-api-script:
+	@echo "${YELLOW}Running API tests with script...${NC}"
+	@./scripts/test_api.sh all
+	@echo "${GREEN}API script tests passed!${NC}"
+
+## test-performance: Run performance tests
+test-performance:
+	@echo "${YELLOW}Running performance tests...${NC}"
+	@RUN_PERF_TESTS=true $(GOTEST) -v -run TestPerformance -timeout $(INTEGRATION_TEST_TIMEOUT) ./test/api/...
+	@echo "${GREEN}Performance tests passed!${NC}"
+
+## test-load: Run load tests with hey
+test-load:
+	@echo "${YELLOW}Running load tests...${NC}"
+	@./scripts/test_api.sh load
+	@echo "${GREEN}Load tests completed!${NC}"
+
 ## test-coverage: Run tests with coverage report
 test-coverage:
 	@echo "${YELLOW}Running tests with coverage...${NC}"

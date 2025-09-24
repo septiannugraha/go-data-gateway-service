@@ -1,0 +1,249 @@
+{
+  "tenders": [
+    {
+      "tender_id": "TENDER-001",
+      "nama_paket": "Pembangunan Gedung Kantor Pemerintah",
+      "nilai_pagu": 5000000000,
+      "metode_pengadaan": "E-Tender",
+      "tahun_anggaran": 2025,
+      "status_tender": "active",
+      "tanggal_buat_paket": "2025-01-01",
+      "tanggal_pengumuman": "2025-01-15",
+      "provinsi": "DKI Jakarta",
+      "jenis_pengadaan": "Konstruksi",
+      "nama_kl": "Kementerian PUPR",
+      "nilai_kontrak": 4800000000,
+      "satuan_kerja": "Satker Jakarta"
+    },
+    {
+      "tender_id": "TENDER-002",
+      "nama_paket": "Pengadaan Infrastruktur IT",
+      "nilai_pagu": 2000000000,
+      "metode_pengadaan": "E-Purchasing",
+      "tahun_anggaran": 2025,
+      "status_tender": "completed",
+      "tanggal_buat_paket": "2024-12-01",
+      "tanggal_pengumuman": "2024-12-15",
+      "provinsi": "Jawa Barat",
+      "jenis_pengadaan": "Barang",
+      "nama_kl": "Kementerian Kominfo",
+      "nilai_kontrak": 1950000000,
+      "satuan_kerja": "Satker Bandung"
+    },
+    {
+      "tender_id": "TENDER-003",
+      "nama_paket": "Jasa Konsultansi Perencanaan",
+      "nilai_pagu": 800000000,
+      "metode_pengadaan": "Seleksi",
+      "tahun_anggaran": 2025,
+      "status_tender": "active",
+      "tanggal_buat_paket": "2025-01-10",
+      "tanggal_pengumuman": "2025-01-20",
+      "provinsi": "Jawa Timur",
+      "jenis_pengadaan": "Jasa Konsultansi",
+      "nama_kl": "Kementerian PPN/Bappenas",
+      "nilai_kontrak": null,
+      "satuan_kerja": "Satker Surabaya"
+    }
+  ],
+  "rup": [
+    {
+      "kd_kro": 1001,
+      "kd_kro_str": "KRO-1001",
+      "nama_kro": "Rencana Pengadaan Konstruksi 2025",
+      "pagu_kro": 10000000000,
+      "tahun_anggaran": 2025,
+      "kd_satker": 5001,
+      "kd_klpd": "K001",
+      "nama_klpd": "Kementerian PUPR",
+      "jenis_klpd": "Kementerian",
+      "kd_program": 2001,
+      "kd_kegiatan": 3001,
+      "_event_date": "2025-01-01T00:00:00Z",
+      "is_deleted": false
+    },
+    {
+      "kd_kro": 1002,
+      "kd_kro_str": "KRO-1002",
+      "nama_kro": "Rencana Pengadaan IT 2025",
+      "pagu_kro": 5000000000,
+      "tahun_anggaran": 2025,
+      "kd_satker": 5002,
+      "kd_klpd": "K002",
+      "nama_klpd": "Kementerian Kominfo",
+      "jenis_klpd": "Kementerian",
+      "kd_program": 2002,
+      "kd_kegiatan": 3002,
+      "_event_date": "2025-01-02T00:00:00Z",
+      "is_deleted": false
+    }
+  ],
+  "queries": {
+    "valid": [
+      {
+        "sql": "SELECT * FROM tender_data LIMIT 10",
+        "source": "DATAWAREHOUSE",
+        "description": "Basic select query"
+      },
+      {
+        "sql": "SELECT COUNT(*) as total FROM rup_kromaster",
+        "source": "BIGQUERY",
+        "description": "Count query"
+      },
+      {
+        "sql": "SELECT tender_id, nama_paket, nilai_pagu FROM tender_data WHERE status_tender = 'active'",
+        "source": "DATAWAREHOUSE",
+        "description": "Filtered query"
+      }
+    ],
+    "invalid": [
+      {
+        "sql": "DROP TABLE tender_data",
+        "source": "DATAWAREHOUSE",
+        "description": "DDL not allowed",
+        "error": "DDL operations not permitted"
+      },
+      {
+        "sql": "UPDATE tender_data SET nilai_pagu = 0",
+        "source": "DATAWAREHOUSE",
+        "description": "DML not allowed",
+        "error": "Write operations not permitted"
+      },
+      {
+        "sql": "",
+        "source": "DATAWAREHOUSE",
+        "description": "Empty query",
+        "error": "Query cannot be empty"
+      }
+    ]
+  },
+  "batch_requests": {
+    "small": {
+      "queries": [
+        {
+          "id": "q1",
+          "query": "SELECT 1 as num",
+          "data_source": "DATAWAREHOUSE"
+        },
+        {
+          "id": "q2",
+          "query": "SELECT 2 as num",
+          "data_source": "BIGQUERY"
+        }
+      ]
+    },
+    "large": {
+      "queries": [
+        {
+          "id": "batch-1",
+          "query": "SELECT * FROM tender_data WHERE tahun_anggaran = 2025",
+          "data_source": "DATAWAREHOUSE"
+        },
+        {
+          "id": "batch-2",
+          "query": "SELECT * FROM rup_kromaster WHERE tahun_anggaran = 2025",
+          "data_source": "BIGQUERY"
+        },
+        {
+          "id": "batch-3",
+          "query": "SELECT COUNT(*) FROM tender_data",
+          "data_source": "DATAWAREHOUSE"
+        },
+        {
+          "id": "batch-4",
+          "query": "SELECT SUM(pagu_kro) FROM rup_kromaster",
+          "data_source": "BIGQUERY"
+        },
+        {
+          "id": "batch-5",
+          "query": "SELECT DISTINCT provinsi FROM tender_data",
+          "data_source": "DATAWAREHOUSE"
+        }
+      ],
+      "options": {
+        "max_concurrency": 3,
+        "timeout": 60,
+        "stop_on_error": false
+      }
+    }
+  },
+  "api_keys": {
+    "valid": [
+      "test-api-key-123",
+      "demo-key-456",
+      "integration-test-key"
+    ],
+    "invalid": [
+      "expired-key",
+      "invalid-key",
+      "malformed"
+    ]
+  },
+  "expected_responses": {
+    "health": {
+      "status": "healthy",
+      "version": "1.0.0"
+    },
+    "ready": {
+      "ready": true,
+      "services": {
+        "DATAWAREHOUSE": {
+          "ready": true,
+          "message": "Service is ready"
+        },
+        "BIGQUERY": {
+          "ready": true,
+          "message": "Service is ready"
+        }
+      }
+    },
+    "error_unauthorized": {
+      "success": false,
+      "error": "Unauthorized",
+      "details": "Invalid or missing API key"
+    },
+    "error_bad_request": {
+      "success": false,
+      "error": "Invalid request",
+      "details": "The request body is malformed"
+    },
+    "error_not_found": {
+      "success": false,
+      "error": "Not found",
+      "details": "The requested resource was not found"
+    },
+    "error_service_unavailable": {
+      "success": false,
+      "error": "Service unavailable",
+      "details": "The data source is temporarily unavailable"
+    }
+  },
+  "performance_targets": {
+    "endpoints": {
+      "/health": {
+        "max_latency_ms": 10,
+        "target_rps": 1000
+      },
+      "/api/v1/query": {
+        "max_latency_ms": 200,
+        "target_rps": 100
+      },
+      "/api/v1/batch": {
+        "max_latency_ms": 1000,
+        "target_rps": 20
+      },
+      "/api/v1/tender": {
+        "max_latency_ms": 150,
+        "target_rps": 50
+      },
+      "/api/v1/stream": {
+        "max_latency_ms": 500,
+        "target_rps": 10
+      }
+    },
+    "cache": {
+      "target_hit_rate": 0.75,
+      "max_memory_mb": 512
+    }
+  }
+}
