@@ -1,0 +1,390 @@
+/* LKPP brand theme overrides for Fusio account extension */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --lkpp-primary: #f04242;
+  --lkpp-primary-dark: #c92d2d;
+  --lkpp-primary-soft: #fde9e9;
+  --lkpp-background: #f7f7f9;
+  --lkpp-surface: #ffffff;
+  --lkpp-surface-alt: #fff4f4;
+  --lkpp-border: #e7e7ed;
+  --lkpp-muted: #5f6168;
+  --lkpp-heading: #1c1d22;
+  --lkpp-shadow: 0 30px 80px -48px rgba(201, 45, 45, 0.45);
+
+  --bs-font-sans-serif: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --bs-body-bg: var(--lkpp-background);
+  --bs-body-color: var(--lkpp-heading);
+  --bs-primary: var(--lkpp-primary);
+  --bs-primary-rgb: 240, 66, 66;
+  --bs-danger: var(--lkpp-primary-dark);
+  --bs-link-color: var(--lkpp-primary);
+  --bs-link-hover-color: var(--lkpp-primary-dark);
+  --bs-border-color: var(--lkpp-border);
+  --bs-focus-ring-color: rgba(240, 66, 66, 0.25);
+  --bs-border-radius: 1rem;
+  --bs-border-radius-lg: 1.25rem;
+  --bs-border-radius-xl: 1.5rem;
+}
+
+body.lkpp-theme {
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  background: radial-gradient(160% 120% at 50% 0%, rgba(240, 66, 66, 0.08) 0%, rgba(255, 255, 255, 0.92) 45%, #f7f7f9 100%);
+  color: var(--lkpp-heading);
+  min-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+body.lkpp-theme app-root,
+body.lkpp-theme app-root > * {
+  font-family: inherit;
+}
+
+body.lkpp-theme a {
+  color: var(--lkpp-primary);
+  font-weight: 500;
+}
+
+body.lkpp-theme a:hover,
+body.lkpp-theme a:focus {
+  color: var(--lkpp-primary-dark);
+}
+
+body.lkpp-theme .navbar {
+  background: var(--lkpp-surface);
+  border-bottom: 1px solid rgba(231, 231, 237, 0.8);
+  box-shadow: 0 18px 36px -28px rgba(0, 0, 0, 0.28);
+  padding-block: 0.75rem;
+}
+
+/* Center entire navbar content */
+body.lkpp-theme .navbar .container,
+body.lkpp-theme .navbar .container-fluid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+body.lkpp-theme .navbar .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  color: var(--lkpp-heading);
+  justify-content: center;
+  margin: 0 auto;
+}
+
+body.lkpp-theme .navbar .navbar-brand img {
+  height: 32px;
+  width: auto;
+  border-radius: 10px;
+}
+
+body.lkpp-theme .navbar-nav .nav-link {
+  font-weight: 500;
+  color: var(--lkpp-muted);
+}
+
+body.lkpp-theme .navbar-nav .nav-link.active,
+body.lkpp-theme .navbar-nav .nav-link:focus,
+body.lkpp-theme .navbar-nav .nav-link:hover {
+  color: var(--lkpp-primary);
+}
+
+body.lkpp-theme .card,
+body.lkpp-theme .modal-content,
+body.lkpp-theme .dropdown-menu {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(231, 231, 237, 0.9);
+  box-shadow: var(--lkpp-shadow);
+  background: var(--lkpp-surface);
+}
+
+body.lkpp-theme .card-header,
+body.lkpp-theme .modal-header {
+  background: var(--lkpp-surface);
+  border-bottom: 1px solid rgba(231, 231, 237, 0.8);
+  font-weight: 600;
+  color: var(--lkpp-heading);
+}
+
+body.lkpp-theme .card-title,
+body.lkpp-theme h1,
+body.lkpp-theme h2,
+body.lkpp-theme h3,
+body.lkpp-theme h4,
+body.lkpp-theme h5,
+body.lkpp-theme h6 {
+  color: var(--lkpp-heading);
+  font-weight: 600;
+}
+
+body.lkpp-theme .form-control,
+body.lkpp-theme .form-select {
+  border-radius: 0.9rem;
+  border-color: var(--lkpp-border);
+  background-color: var(--lkpp-surface);
+  padding: 0.7rem 1rem;
+  box-shadow: none;
+}
+
+body.lkpp-theme .form-control:focus,
+body.lkpp-theme .form-select:focus,
+body.lkpp-theme .form-check-input:focus {
+  border-color: var(--lkpp-primary);
+  box-shadow: 0 0 0 0.25rem rgba(240, 66, 66, 0.15);
+}
+
+body.lkpp-theme .btn {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.65rem 1.6rem;
+  transition: all 0.2s ease-in-out;
+}
+
+body.lkpp-theme .btn-primary,
+body.lkpp-theme .btn-danger,
+body.lkpp-theme .btn-outline-danger.btn-active {
+  background-color: var(--lkpp-primary);
+  border-color: var(--lkpp-primary);
+  color: #ffffff;
+  box-shadow: 0 16px 40px -24px rgba(240, 66, 66, 0.75);
+}
+
+body.lkpp-theme .btn-primary:hover,
+body.lkpp-theme .btn-danger:hover,
+body.lkpp-theme .btn-outline-danger.btn-active:hover {
+  background-color: var(--lkpp-primary-dark);
+  border-color: var(--lkpp-primary-dark);
+}
+
+body.lkpp-theme .btn-outline-primary,
+body.lkpp-theme .btn-outline-danger {
+  color: var(--lkpp-primary);
+  border-color: rgba(240, 66, 66, 0.7);
+  background-color: transparent;
+}
+
+body.lkpp-theme .btn-outline-primary:hover,
+body.lkpp-theme .btn-outline-danger:hover {
+  background-color: rgba(240, 66, 66, 0.1);
+  color: var(--lkpp-primary-dark);
+  border-color: var(--lkpp-primary-dark);
+}
+
+body.lkpp-theme .badge.bg-primary,
+body.lkpp-theme .badge.text-bg-primary {
+  background-color: var(--lkpp-primary);
+}
+
+body.lkpp-theme .nav-pills .nav-link.active,
+body.lkpp-theme .nav-tabs .nav-link.active,
+body.lkpp-theme .list-group-item.active {
+  background: var(--lkpp-primary);
+  border-color: var(--lkpp-primary);
+  color: #ffffff;
+  box-shadow: 0 12px 32px -22px rgba(240, 66, 66, 0.6);
+}
+
+body.lkpp-theme .nav-pills .nav-link,
+body.lkpp-theme .nav-tabs .nav-link {
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  color: var(--lkpp-muted);
+}
+
+body.lkpp-theme .list-group-item {
+  border-color: rgba(231, 231, 237, 0.9);
+  border-radius: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+body.lkpp-theme .alert-primary,
+body.lkpp-theme .alert-danger {
+  border-radius: 1rem;
+  border: 1px solid rgba(240, 66, 66, 0.2);
+  background: var(--lkpp-primary-soft);
+  color: var(--lkpp-heading);
+}
+
+body.lkpp-theme .table thead th {
+  background: var(--lkpp-primary-soft);
+  color: var(--lkpp-heading);
+  border-bottom: none;
+}
+
+body.lkpp-theme .table tbody tr:hover {
+  background: rgba(240, 66, 66, 0.06);
+}
+
+body.lkpp-theme .breadcrumb-item + .breadcrumb-item::before {
+  color: rgba(95, 97, 104, 0.45);
+}
+
+body.lkpp-theme .page-link,
+body.lkpp-theme .pagination .page-item .page-link {
+  border-radius: 999px;
+  color: var(--lkpp-muted);
+  border-color: rgba(231, 231, 237, 0.9);
+}
+
+body.lkpp-theme .page-item.active .page-link {
+  background: var(--lkpp-primary);
+  border-color: var(--lkpp-primary);
+  color: #ffffff;
+}
+
+body.lkpp-theme footer {
+  color: rgba(95, 97, 104, 0.75);
+}
+
+body.lkpp-theme .account-hero,
+body.lkpp-theme .login-container,
+body.lkpp-theme .login-wrapper {
+  background: linear-gradient(135deg, rgba(240, 66, 66, 0.12) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(255, 255, 255, 0.98) 100%);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(231, 231, 237, 0.6);
+  box-shadow: var(--lkpp-shadow);
+}
+
+/* Login/logo image adjustments */
+body.lkpp-theme img[src*="lkpp-logo"] {
+  display: block;
+  margin-inline: auto;
+  align-self: center !important;
+  border-radius: 14px;
+  width: 120px;
+  height: auto;
+}
+
+body.lkpp-theme .login-wrapper,
+body.lkpp-theme .login-container {
+  padding: 2.5rem 2.25rem;
+  margin: 0 auto;
+}
+
+body.lkpp-theme .login-wrapper .card-body,
+body.lkpp-theme .login-container .card-body {
+  padding: 2rem 2rem 2.5rem;
+}
+
+body.lkpp-theme .login-wrapper form .form-group,
+body.lkpp-theme .login-wrapper form .mb-3,
+body.lkpp-theme .login-wrapper form .mb-4,
+body.lkpp-theme .login-container form .form-group,
+body.lkpp-theme .login-container form .mb-3,
+body.lkpp-theme .login-container form .mb-4 {
+  margin-bottom: 1.15rem !important;
+}
+
+/* Branded text under logo: INAPROC API Gateway */
+.lkpp-brandstack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.05;
+}
+
+.lkpp-brandstack .lkpp-brandline {
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+}
+
+.lkpp-brandstack .lkpp-brandline .ina { color: var(--lkpp-primary); }
+.lkpp-brandstack .lkpp-brandline .proc { color: var(--lkpp-heading); opacity: 0.95; }
+
+.lkpp-brandstack .lkpp-sub {
+  margin-top: 4px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--lkpp-muted);
+}
+
+/* Password reset link alignment next to Login button */
+.lkpp-reset-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 40px; /* approx .btn height */
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+body.lkpp-theme .login-container .card,
+body.lkpp-theme .login-wrapper .card {
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+body.lkpp-theme .profile-avatar,
+body.lkpp-theme .avatar {
+  border: 4px solid #ffffff;
+  box-shadow: 0 12px 36px -18px rgba(0, 0, 0, 0.35);
+}
+
+body.lkpp-theme .timeline::before,
+body.lkpp-theme .list-group::before {
+  background: var(--lkpp-primary);
+}
+
+body.lkpp-theme .dropdown-item.active,
+body.lkpp-theme .dropdown-item:active {
+  background: rgba(240, 66, 66, 0.1);
+  color: var(--lkpp-primary-dark);
+}
+
+body.lkpp-theme .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(240, 66, 66, 0.04);
+}
+
+body.lkpp-theme .text-muted {
+  color: rgba(95, 97, 104, 0.85) !important;
+}
+
+body.lkpp-theme .border {
+  border-color: var(--lkpp-border) !important;
+}
+
+body.lkpp-theme .bg-light {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+body.lkpp-theme .bg-primary,
+body.lkpp-theme .text-bg-primary {
+  background-color: var(--lkpp-primary) !important;
+}
+
+body.lkpp-theme .btn-secondary,
+body.lkpp-theme .btn-light {
+  color: var(--lkpp-muted);
+  background: var(--lkpp-surface);
+  border-color: rgba(231, 231, 237, 0.9);
+}
+
+body.lkpp-theme .btn-secondary:hover,
+body.lkpp-theme .btn-light:hover {
+  color: var(--lkpp-primary-dark);
+  border-color: var(--lkpp-primary);
+}
+
+body.lkpp-theme .progress-bar {
+  background-color: var(--lkpp-primary);
+}
+
+body.lkpp-theme .tab-content {
+  background: var(--lkpp-surface);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(231, 231, 237, 0.8);
+  padding: 1.5rem;
+}
+
+body.lkpp-theme .shadow,
+body.lkpp-theme .shadow-sm,
+body.lkpp-theme .shadow-lg {
+  box-shadow: var(--lkpp-shadow) !important;
+}
