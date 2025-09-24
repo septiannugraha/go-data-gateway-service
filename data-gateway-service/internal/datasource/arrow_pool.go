@@ -2,6 +2,7 @@ package datasource
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -20,6 +21,12 @@ var (
 	ErrPoolExhausted = errors.New("connection pool exhausted")
 	ErrInvalidConfig = errors.New("invalid pool configuration")
 )
+
+// basicAuth creates a basic authentication string
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
 
 // PoolConfig defines the connection pool configuration
 type PoolConfig struct {

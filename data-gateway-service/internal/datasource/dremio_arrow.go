@@ -32,6 +32,8 @@ type DremioArrowClient struct {
 	ctx       context.Context
 	usePool   bool
 	sanitizer *SQLSanitizer
+	username  string
+	password  string
 }
 
 // DremioConfig holds Dremio connection configuration
@@ -61,6 +63,8 @@ func NewDremioArrowClientWithPool(cfg *DremioConfig, poolConfig *PoolConfig, log
 		memAlloc: memory.NewGoAllocator(),
 		ctx:      context.Background(),
 		usePool:  true,
+		username: cfg.Username,
+		password: cfg.Password,
 	}
 
 	logger.Info("Dremio Arrow Flight client initialized with connection pool",
@@ -100,6 +104,8 @@ func NewDremioArrowClient(cfg *DremioConfig, logger *zap.Logger) (*DremioArrowCl
 		cache:    cache.New(5*time.Minute, 10*time.Minute),
 		memAlloc: memory.NewGoAllocator(),
 		ctx:      ctx,
+		username: cfg.Username,
+		password: cfg.Password,
 	}
 
 	// Set up authentication context if credentials provided
@@ -111,12 +117,6 @@ func NewDremioArrowClient(cfg *DremioConfig, logger *zap.Logger) (*DremioArrowCl
 
 	logger.Info("Dremio Arrow Flight client initialized", zap.String("host", cfg.Host), zap.Int("port", cfg.Port))
 	return client, nil
-}
-
-// basicAuth creates a basic auth string
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 // ExecuteQuery executes a SQL query using Arrow Flight
@@ -149,8 +149,12 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 	// Use connection pool if available
 	if d.usePool && d.pool != nil {
 		err := d.pool.WithConnection(ctx, func(client flight.Client) error {
+			// Add authentication to context
+			authCtx := metadata.AppendToOutgoingContext(ctx,
+				"authorization", "Basic "+basicAuth(d.username, d.password))
+
 			// Get flight info for the query
-			info, err := client.GetFlightInfo(ctx, desc)
+			info, err := client.GetFlightInfo(authCtx, desc)
 			if err != nil {
 				return fmt.Errorf("failed to get flight info: %w", err)
 			}
@@ -162,7 +166,7 @@ func (d *DremioArrowClient) ExecuteQuery(ctx context.Context, query string, opts
 
 			// Fetch results from the first endpoint
 			endpoint := info.GetEndpoint()[0]
-			stream, err := client.DoGet(ctx, endpoint.GetTicket())
+			stream, err := client.DoGet(authCtx, endpoint.GetTicket())
 			if err != nil {
 				return fmt.Errorf("failed to get data stream: %w", err)
 			}

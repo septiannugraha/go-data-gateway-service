@@ -81,7 +81,7 @@ func main() {
 
 		// Create handlers
 		queryHandler := v1.NewQueryHandler(dataSources, logger)
-		tenderHandler := v1.NewTenderHandler(dataSources["dremio"], logger)
+		tenderHandler := v1.NewTenderHandler(dataSources["DATAWAREHOUSE"], logger)
 		batchHandler := v1.NewBatchHandler(dataSources, logger)
 		streamHandler := v1.NewStreamHandler(dataSources, logger)
 
@@ -188,7 +188,7 @@ func initializeCache(cfg *config.Config, logger *zap.Logger) cache.Cache {
 		return &cache.NoOpCache{}
 	}
 
-	cacheService, err := cache.NewRedisCache(cfg.Redis, logger)
+	cacheService, err := cache.NewRedisCacheFromConfig(cfg.Redis, logger)
 	if err != nil {
 		logger.Warn("Failed to initialize Redis cache, using no-op cache", zap.Error(err))
 		return &cache.NoOpCache{}
@@ -230,7 +230,7 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger, cacheService 
 				logger.Warn("Arrow Flight SQL initialization failed", zap.Error(err))
 			} else {
 				// Wrap with caching
-				sources["dremio"] = cache.NewCachedDataSource(arrowClient, cacheService, logger)
+				sources["DATAWAREHOUSE"] = cache.NewCachedDataSource(arrowClient, cacheService, logger)
 				logger.Info("Dremio Arrow Flight SQL client initialized with connection pool and caching",
 					zap.Int("max_connections", poolConfig.MaxConnections))
 			}
@@ -247,7 +247,7 @@ func initializeDataSources(cfg *config.Config, logger *zap.Logger, cacheService 
 				logger.Warn("Dremio REST client initialization failed", zap.Error(err))
 			} else {
 				// Wrap with caching
-				sources["dremio"] = cache.NewCachedDataSource(dremioClient, cacheService, logger)
+				sources["DATAWAREHOUSE"] = cache.NewCachedDataSource(dremioClient, cacheService, logger)
 				logger.Info("Dremio REST client initialized with caching")
 			}
 		}

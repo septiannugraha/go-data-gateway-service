@@ -102,6 +102,7 @@ data-gateway-service/bin/
 data-gateway-service/build/
 data-gateway-service/dist/
 data-gateway-service/tmp/
+data-gateway-service/talks/
 
 # Go specific binaries
 data-gateway-service/go-data-gateway
@@ -273,90 +274,40 @@ start.sh
 # are covered in this root file.
 # =============================================================================
 
-<<<<<<< HEAD
 # Docker volumes
-data//talks/
-=======
-# =============================================================================
-# INAPROC API GATEWAY (FUSIO/PHP) - /inaproc-api-gateway/
-# =============================================================================
-
-# Fusio specific
-inaproc-api-gateway/cache/
-inaproc-api-gateway/var/
-inaproc-api-gateway/log/
-
-# PHP Composer
-inaproc-api-gateway/vendor/
-inaproc-api-gateway/composer.lock
-
-# PHP temporary files
-inaproc-api-gateway/*.log
-
-# Fusio configuration (keep examples)
-inaproc-api-gateway/.env
-!inaproc-api-gateway/.env.example
-
-# Fusio generated files
-inaproc-api-gateway/public/index.php
-inaproc-api-gateway/resources/route/*.json
+data/
 
 # =============================================================================
-# DOCUMENTATION (FUMADOCS/NEXT.JS) - /docs/
+# INTERNAL NOTES AND TEST DOCUMENTATION (Per user request - exclude from commits)
 # =============================================================================
 
-# Next.js build output
-docs/.next/
-docs/out/
-docs/build/
+# Internal documentation (exclude all *.md files except README.md)
+data-gateway-service/*.md
+!data-gateway-service/README.md
+data-gateway-service/**/*.md
+!data-gateway-service/**/README.md
 
-# Node.js dependencies
-docs/node_modules/
-docs/package-lock.json
-docs/yarn.lock
-docs/pnpm-lock.yaml
+# Test documentation and notes
+data-gateway-service/TESTING.md
+data-gateway-service/PERFORMANCE_OPTIMIZATION_COMPLETE.md
 
-# Fumadocs generated files
-docs/.source/
-docs/.fumadocs/
+# Screenshots and talks directory
+data-gateway-service/talks/
 
-# Next.js and TypeScript
-docs/.next/
-docs/next-env.d.ts
+# Local test files and logs
+data-gateway-service/server_*.log
+data-gateway-service/test-output.log
+data-gateway-service/test-results.json
+data-gateway-service/*.test.go.bak
 
-# Vercel deployment
-docs/.vercel/
+# Test coverage reports
+data-gateway-service/coverage/
+data-gateway-service/coverage.out
+data-gateway-service/coverage.html
 
-# Cloudflare Pages
-docs/.wrangler/
+# Test data directory
+data-gateway-service/testdata/
 
-# Generated OpenAPI documentation
-docs/content/docs/spesifikasi-api/*.mdx
-!docs/content/docs/spesifikasi-api/index.mdx
-!docs/content/docs/spesifikasi-api/meta.json
-
-# Static export
-docs/out/
-
-# =============================================================================
-# ADDITIONAL PROJECT-SPECIFIC IGNORES
-# =============================================================================
-
-# Docker-related
-docker-compose.override.yml
-
-# Database dumps and migrations
-*.sql
-*.dump
-migrations/*.sql
-
-# Generated API specifications
-inaproc-api.yaml
-openapi.yaml
-swagger.yaml
-
-# Build artifacts
-build/
-dist/
-target/
->>>>>>> 190d8a6 (Moving files to monorepo structure, and add docs folder for the API documentation)
+# Benchmark results
+data-gateway-service/benchmark/*.out
+data-gateway-service/benchmark/*.log
