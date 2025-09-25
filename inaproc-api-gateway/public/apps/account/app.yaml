@@ -1,0 +1,6 @@
+description: 'The account app provides a simple user interface for 3rd party developers to consume your API.'
+screenshot: 'https://www.fusio-project.org/media/apps/account.png'
+website: 'https://github.com/apioo/fusio-apps-account'
+scopes:
+  - consumer
+  - authorization

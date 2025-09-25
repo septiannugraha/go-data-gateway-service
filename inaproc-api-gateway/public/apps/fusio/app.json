@@ -1,0 +1,20 @@
+{
+    "name": "fusio",
+    "author": {
+        "id": 2,
+        "name": "fusio",
+        "verified": true
+    },
+    "version": "6.0.0",
+    "icon": "window-fullscreen",
+    "summary": "The official Fusio backend app to develop, configure and maintain your API",
+    "description": "The official Fusio backend app to develop, configure and maintain your API",
+    "cost": 0,
+    "scopes": [
+        "backend",
+        "consumer",
+        "authorization"
+    ],
+    "downloadUrl": "https://github.com/apioo/fusio-apps-backend/releases/download/v6.0.0/fusio.zip",
+    "hash": "58f6738746e1d89641de258fd77d515338b952b5"
+}

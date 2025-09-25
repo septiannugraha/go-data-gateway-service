@@ -1,0 +1,19 @@
+{
+    "name": "account",
+    "author": {
+        "id": 2,
+        "name": "fusio",
+        "verified": true
+    },
+    "version": "2.0.0",
+    "icon": "person",
+    "summary": "The account app provides a simple user interface for 3rd party developers to consume your API",
+    "description": "The account app provides a simple user interface for 3rd party developers to consume your API",
+    "cost": 0,
+    "scopes": [
+        "consumer",
+        "authorization"
+    ],
+    "downloadUrl": "https://github.com/apioo/fusio-apps-account/releases/download/v2.0.0/account.zip",
+    "hash": "009cce5aac61f15b14c61cdd6ed3097fd1284f66"
+}
