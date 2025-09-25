@@ -328,3 +328,12 @@ data-gateway-service/testdata/
 # Benchmark results
 data-gateway-service/benchmark/*.out
 data-gateway-service/benchmark/*.log
+
+# Test artifacts and workflow temporaries
+*_TEST_REPORT.md
+test_report.md
+workflow/node_modules/
+workflow/coverage/
+workflow/.env.test
+workflow/test-results/
+workflow/package-lock.json

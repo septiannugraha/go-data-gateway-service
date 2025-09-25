@@ -168,14 +168,11 @@ func TestDremioConnectionPoolWithEnvCredentials(t *testing.T) {
 	}
 
 	poolConfig := &PoolConfig{
-		MaxConnections:     5,
-		MinConnections:     1,
-		MaxConnectionAge:   5 * time.Minute,
-		ConnectionTimeout:  10 * time.Second,
-		IdleTimeout:        1 * time.Minute,
-		HealthCheckPeriod:  30 * time.Second,
-		RetryAttempts:      3,
-		RetryDelay:         1 * time.Second,
+		MaxConnections:      5,
+		MinConnections:      1,
+		MaxIdleTime:         5 * time.Minute,
+		ConnectionTimeout:   10 * time.Second,
+		HealthCheckInterval: 30 * time.Second,
 	}
 
 	// Create client with connection pool

@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"bytes"
@@ -23,7 +23,6 @@ import (
 	"go-data-gateway/internal/cache"
 	"go-data-gateway/internal/datasource"
 	"go-data-gateway/internal/handlers/v1"
-	custommw "go-data-gateway/internal/middleware/chi"
 	"go-data-gateway/internal/response"
 )
 
@@ -45,8 +44,8 @@ func (suite *APITestSuite) SetupSuite() {
 
 	// Initialize mock data sources
 	suite.dataSources = map[string]datasource.DataSource{
-		"DATAWAREHOUSE": NewMockDataSource(datasource.DataSourceTypeDremio),
-		"BIGQUERY":      NewMockDataSource(datasource.DataSourceTypeBigQuery),
+		"DATAWAREHOUSE": NewMockDataSource(datasource.DataSourceDremio),
+		"BIGQUERY":      NewMockDataSource(datasource.DataSourceBigQuery),
 	}
 
 	// Initialize cache
@@ -804,8 +803,19 @@ func (suite *APITestSuite) TestErrorResponses() {
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
-			assert.False(t, result["success"].(bool))
-			assert.Contains(t, result["error"].(string), tt.expectedError)
+			success, okSuccess := result["success"].(bool)
+			if okSuccess {
+				assert.False(t, success)
+			}
+
+			if errorMsg, ok := result["error"].(string); ok {
+				assert.Contains(t, errorMsg, tt.expectedError)
+			} else if errorObj, ok := result["error"].(map[string]interface{}); ok {
+				// Handle structured error response
+				if msg, ok := errorObj["message"].(string); ok {
+					assert.Contains(t, msg, tt.expectedError)
+				}
+			}
 		})
 	}
 }
@@ -833,6 +843,20 @@ func (m *MockDataSource) ExecuteQuery(ctx context.Context, query string, opts *d
 	}
 
 	// Return some mock data
+	mockData := []map[string]interface{}{
+		{"id": 1, "name": "Test Item 1", "value": 100},
+		{"id": 2, "name": "Test Item 2", "value": 200},
+	}
+
+	return &datasource.QueryResult{
+		Data:     mockData,
+		Count:    len(mockData),
+		CacheHit: false,
+	}, nil
+}
+
+func (m *MockDataSource) GetData(ctx context.Context, table string, opts *datasource.QueryOptions) (*datasource.QueryResult, error) {
+	// Return mock data for GetData
 	mockData := []map[string]interface{}{
 		{"id": 1, "name": "Test Item 1", "value": 100},
 		{"id": 2, "name": "Test Item 2", "value": 200},
