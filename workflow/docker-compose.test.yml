@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Test Database
+  test-postgres:
+    image: postgres:15-alpine
+    container_name: test-postgres
+    environment:
+      POSTGRES_USER: test_n8n
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_n8n
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_n8n"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test n8n Instance
+  test-n8n:
+    image: n8nio/n8n:latest
+    container_name: test-n8n
+    depends_on:
+      test-postgres:
+        condition: service_healthy
+    ports:
+      - "5679:5678"  # Different port for testing
+    environment:
+      # Database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: test-postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: test_n8n
+      DB_POSTGRESDB_USER: test_n8n
+      DB_POSTGRESDB_PASSWORD: test_password
+
+      # n8n Config
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5679
+      N8N_ENCRYPTION_KEY: test-encryption-key-for-testing-only
+
+      # Test Mode
+      N8N_LOG_LEVEL: debug
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+
+      # External Services (Mocked)
+      FUSIO_API_URL: http://mock-fusio:8080
+      TEST_MODE: "true"
+    volumes:
+      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./services:/home/node/.n8n/custom
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock Fusio API Server
+  mock-fusio:
+    image: mockserver/mockserver:latest
+    container_name: mock-fusio
+    ports:
+      - "8081:8080"
+    environment:
+      MOCKSERVER_LOG_LEVEL: INFO
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/fusio-mock.json
+    volumes:
+      - ./tests/fixtures/fusio-mock.json:/config/fusio-mock.json:ro
+    networks:
+      - test-network
+    command: -serverPort 8080 -logLevel INFO
+
+  # MailHog - Email Testing Server
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: test-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI
+    networks:
+      - test-network
+
+  # Redis for Cache Testing
+  test-redis:
+    image: redis:7-alpine
+    container_name: test-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test Runner Container
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: test-runner
+    depends_on:
+      - test-n8n
+      - mock-fusio
+      - mailhog
+      - test-redis
+    environment:
+      # Test Configuration
+      N8N_URL: http://test-n8n:5678
+      WEBHOOK_URL: http://test-n8n:5678/webhook/google-forms-webhook
+      FUSIO_URL: http://mock-fusio:8080
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      REDIS_HOST: test-redis
+      REDIS_PORT: 6379
+
+      # Test Settings
+      PYTHONPATH: /app
+      TEST_MODE: "true"
+      COVERAGE: "true"
+    volumes:
+      - ./tests:/app/tests
+      - ./services:/app/services
+      - ./test-results:/app/test-results
+    networks:
+      - test-network
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        echo 'Running tests...' &&
+        pytest tests/ -v --html=/app/test-results/report.html --cov=/app --cov-report=html:/app/test-results/coverage
+      "
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test-n8n-data:
+  test-postgres-data:

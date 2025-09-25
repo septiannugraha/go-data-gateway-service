@@ -1,0 +1,46 @@
+# Test runner container for workflow testing
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for JavaScript testing
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python requirements and install
+COPY requirements-test.txt .
+RUN pip install --no-cache-dir -r requirements-test.txt
+
+# Copy package.json and install Node dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci || npm install
+
+# Install Playwright browsers
+RUN playwright install chromium --with-deps
+
+# Copy test files and services
+COPY tests/ ./tests/
+COPY services/ ./services/
+
+# Create directories for test results
+RUN mkdir -p test-results coverage
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV NODE_PATH=/app/node_modules
+ENV TEST_MODE=true
+
+# Default command
+CMD ["pytest", "tests/", "-v", "--html=test-results/report.html", "--self-contained-html"]

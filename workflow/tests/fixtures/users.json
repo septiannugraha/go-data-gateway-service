@@ -1,0 +1,111 @@
+{
+  "valid_users": [
+    {
+      "email": "john.doe@example.com",
+      "name": "John Doe",
+      "passphrase": "spse2025",
+      "organization": "Tech Corp"
+    },
+    {
+      "email": "jane.smith@example.com",
+      "name": "Jane Smith",
+      "passphrase": "spse2025",
+      "organization": "Data Solutions Inc"
+    },
+    {
+      "email": "bob.wilson@example.com",
+      "name": "Bob Wilson",
+      "passphrase": "spse2025",
+      "organization": "Analytics Pro"
+    }
+  ],
+  "invalid_users": [
+    {
+      "email": "invalid@example.com",
+      "name": "Invalid User",
+      "passphrase": "wrong_pass",
+      "expected_error": "Invalid passphrase"
+    },
+    {
+      "email": "notanemail",
+      "name": "Bad Email",
+      "passphrase": "spse2025",
+      "expected_error": "Invalid email format"
+    },
+    {
+      "email": "",
+      "name": "No Email",
+      "passphrase": "spse2025",
+      "expected_error": "Email is required"
+    },
+    {
+      "email": "test@example.com",
+      "name": "",
+      "passphrase": "spse2025",
+      "expected_error": "Name is required"
+    }
+  ],
+  "edge_cases": [
+    {
+      "email": "user+tag@example.com",
+      "name": "User With Plus",
+      "passphrase": "spse2025",
+      "description": "Email with plus addressing"
+    },
+    {
+      "email": "user@sub.domain.example.com",
+      "name": "Subdomain User",
+      "passphrase": "spse2025",
+      "description": "Email with subdomain"
+    },
+    {
+      "email": "very.long.email.address.that.is.still.valid@example.com",
+      "name": "Long Email User",
+      "passphrase": "spse2025",
+      "description": "Very long email address"
+    },
+    {
+      "email": "user@example.com",
+      "name": "User With Very Long Name That Should Still Be Accepted By The System",
+      "passphrase": "spse2025",
+      "description": "Very long name"
+    }
+  ],
+  "duplicate_test": {
+    "email": "duplicate@example.com",
+    "name": "Duplicate User",
+    "passphrase": "spse2025"
+  },
+  "load_test_template": {
+    "email_pattern": "load-test-{index}@example.com",
+    "name_pattern": "Load Test User {index}",
+    "passphrase": "spse2025",
+    "count": 100
+  },
+  "security_test_payloads": [
+    {
+      "email": "test@example.com'; DROP TABLE users; --",
+      "name": "SQL Injection",
+      "passphrase": "spse2025",
+      "type": "sql_injection"
+    },
+    {
+      "email": "test@example.com",
+      "name": "<script>alert('XSS')</script>",
+      "passphrase": "spse2025",
+      "type": "xss"
+    },
+    {
+      "email": "../../../etc/passwd@example.com",
+      "name": "Path Traversal",
+      "passphrase": "spse2025",
+      "type": "path_traversal"
+    },
+    {
+      "email": "test@example.com",
+      "name": "{{7*7}}",
+      "passphrase": "spse2025",
+      "type": "template_injection"
+    }
+  ]
+}

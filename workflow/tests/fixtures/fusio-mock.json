@@ -1,0 +1,182 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/consumer/login",
+      "headers": {
+        "Content-Type": ["application/json"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "token": "mock-admin-token-123456",
+        "expires_in": 3600,
+        "refresh_token": "mock-refresh-token",
+        "scope": "consumer backend"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/consumer/register",
+      "headers": {
+        "Content-Type": ["application/json"],
+        "X-API-Key": ["test-api-key"]
+      },
+      "body": {
+        "type": "JSON",
+        "matchType": "PARTIAL",
+        "json": {
+          "email": ".*@example\\.com"
+        }
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "id": "mock-user-id-${UUID}",
+        "message": "User registered successfully",
+        "activation_required": true
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/consumer/register",
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "type": "JSON",
+        "json": {
+          "email": "duplicate@example.com"
+        }
+      }
+    },
+    "httpResponse": {
+      "statusCode": 409,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": false,
+        "error": "User already exists",
+        "code": "USER_EXISTS"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "PUT",
+      "path": "/backend/user",
+      "headers": {
+        "Authorization": ["Bearer mock-admin-token-123456"],
+        "X-API-Key": ["test-api-key"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "User activated successfully"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/backend/user",
+      "queryStringParameters": {
+        "email": [".*"]
+      },
+      "headers": {
+        "Authorization": ["Bearer mock-admin-token-123456"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "entry": [],
+        "totalResults": 0
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/backend/user",
+      "queryStringParameters": {
+        "email": ["duplicate@example.com"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "entry": [
+          {
+            "id": "existing-user-id",
+            "email": "duplicate@example.com",
+            "name": "Existing User"
+          }
+        ],
+        "totalResults": 1
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/consumer/app",
+      "headers": {
+        "Authorization": ["Bearer .*"]
+      }
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "id": "mock-app-id",
+        "appKey": "mock-api-key-${UUID}",
+        "appSecret": "mock-api-secret-${UUID}"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/",
+      "headers": {}
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "apiVersion": "1.0.0",
+        "title": "Mock Fusio API"
+      }
+    }
+  }
+]

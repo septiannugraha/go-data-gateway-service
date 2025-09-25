@@ -1,0 +1,335 @@
+{
+  "name": "User Onboarding - Google Forms to Fusio",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "google-forms-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Google Forms Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "google-forms-registration"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"passphrase\"]}}",
+              "operation": "equals",
+              "value2": "={{$env[\"FORM_PASSPHRASE\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "validate-passphrase",
+      "name": "Validate Passphrase",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Import password generator\nconst PasswordGenerator = require('/home/node/.n8n/custom/password_generator.js');\n\n// Extract form data\nconst formData = items[0].json;\nconst email = formData.email;\nconst name = formData.name;\n\n// Generate secure password\nconst generator = new PasswordGenerator({\n  length: 16,\n  includeNumbers: true,\n  includeSymbols: true,\n  includeUppercase: true,\n  includeLowercase: true\n});\n\nconst password = generator.generate();\nconst strength = PasswordGenerator.checkStrength(password);\n\n// Return enriched data\nreturn [{\n  json: {\n    email: email,\n    name: name,\n    password: password,\n    passwordStrength: strength.strength,\n    timestamp: new Date().toISOString(),\n    formId: formData.formId || 'unknown'\n  }\n}];"
+      },
+      "id": "generate-password",
+      "name": "Generate Password",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [650, 250]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env[\"FUSIO_API_URL\"]}}/consumer/register",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{$env[\"FUSIO_API_KEY\"]}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{$json[\"name\"]}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$json[\"email\"]}}"
+            },
+            {
+              "name": "password",
+              "value": "={{$json[\"password\"]}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "register-fusio-user",
+      "name": "Register Fusio User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 250],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json[\"statusCode\"]}}",
+              "operation": "equals",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "id": "check-registration",
+      "name": "Check Registration Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 250]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env[\"EMAIL_FROM_ADDRESS\"]}}",
+        "toEmail": "={{$node[\"Generate Password\"].json[\"email\"]}}",
+        "subject": "Welcome to SPSE Data Gateway - Your API Credentials",
+        "html": true,
+        "htmlBody": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background-color: #007bff; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }\n    .content { background-color: #f8f9fa; padding: 30px; border: 1px solid #dee2e6; border-top: none; }\n    .credentials { background-color: white; padding: 20px; border: 1px solid #dee2e6; border-radius: 5px; margin: 20px 0; }\n    .credential-item { margin: 10px 0; }\n    .label { font-weight: bold; color: #666; }\n    .value { background-color: #f8f9fa; padding: 8px; border-radius: 3px; font-family: monospace; margin-top: 5px; }\n    .button { display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }\n    .warning { background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; }\n    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Welcome to SPSE Data Gateway!</h1>\n    </div>\n    <div class=\"content\">\n      <p>Dear {{$node[\"Generate Password\"].json[\"name\"]}},</p>\n      \n      <p>Your account has been successfully created. Below are your login credentials:</p>\n      \n      <div class=\"credentials\">\n        <div class=\"credential-item\">\n          <div class=\"label\">Email/Username:</div>\n          <div class=\"value\">{{$node[\"Generate Password\"].json[\"email\"]}}</div>\n        </div>\n        <div class=\"credential-item\">\n          <div class=\"label\">Password:</div>\n          <div class=\"value\">{{$node[\"Generate Password\"].json[\"password\"]}}</div>\n        </div>\n        <div class=\"credential-item\">\n          <div class=\"label\">Password Strength:</div>\n          <div class=\"value\">{{$node[\"Generate Password\"].json[\"passwordStrength\"]}}</div>\n        </div>\n      </div>\n      \n      <div class=\"warning\">\n        <strong>⚠️ Important Security Notice:</strong>\n        <ul style=\"margin: 10px 0;\">\n          <li>This is the only time your password will be displayed</li>\n          <li>Please save it in a secure password manager</li>\n          <li>Change your password after first login</li>\n          <li>Do not share these credentials with anyone</li>\n        </ul>\n      </div>\n      \n      <h3>Next Steps:</h3>\n      <ol>\n        <li>Click the button below to access your account</li>\n        <li>Log in with your credentials</li>\n        <li>Navigate to the API Keys section</li>\n        <li>Generate your API key for accessing the data gateway</li>\n      </ol>\n      \n      <div style=\"text-align: center;\">\n        <a href=\"{{$env[\"FUSIO_API_URL\"]}}/apps/account\" class=\"button\">Access Your Account</a>\n      </div>\n      \n      <h3>API Documentation:</h3>\n      <p>Once you have your API key, you can access our comprehensive API documentation at:</p>\n      <ul>\n        <li>Swagger UI: <a href=\"{{$env[\"FUSIO_API_URL\"]}}/docs\">{{$env[\"FUSIO_API_URL\"]}}/docs</a></li>\n        <li>API Reference: <a href=\"{{$env[\"FUSIO_API_URL\"]}}/api\">{{$env[\"FUSIO_API_URL\"]}}/api</a></li>\n      </ul>\n      \n      <h3>Available Endpoints:</h3>\n      <ul>\n        <li><strong>GET /api/v1/tender</strong> - Query tender data from Dremio</li>\n        <li><strong>GET /api/v1/rup</strong> - Query RUP data from BigQuery</li>\n        <li><strong>POST /api/v1/query</strong> - Execute custom queries</li>\n      </ul>\n      \n      <div class=\"footer\">\n        <p>This is an automated message. Please do not reply to this email.</p>\n        <p>If you need assistance, contact: admin@spse-gateway.com</p>\n        <p>© 2025 SPSE Data Gateway - All rights reserved</p>\n      </div>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-credentials-email",
+      "name": "Send Credentials Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1250, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log successful registration\nconst logData = {\n  timestamp: new Date().toISOString(),\n  event: 'user_registration_success',\n  email: $node[\"Generate Password\"].json.email,\n  name: $node[\"Generate Password\"].json.name,\n  fusioResponse: $node[\"Register Fusio User\"].json,\n  emailSent: true\n};\n\nconsole.log('User registration successful:', logData);\n\n// You can also send to monitoring service\nreturn [{\n  json: {\n    success: true,\n    message: 'User registered and notified successfully',\n    ...logData\n  }\n}];"
+      },
+      "id": "log-success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env[\"EMAIL_FROM_ADDRESS\"]}}",
+        "toEmail": "={{$env[\"ERROR_NOTIFICATION_EMAIL\"]}}",
+        "subject": "User Registration Failed - Action Required",
+        "text": "Registration failed for user:\n\nEmail: {{$node[\"Generate Password\"].json[\"email\"]}}\nName: {{$node[\"Generate Password\"].json[\"name\"]}}\nTimestamp: {{$node[\"Generate Password\"].json[\"timestamp\"]}}\n\nError Details:\n{{$node[\"Register Fusio User\"].json[\"error\"]}}\n\nPlease check the Fusio API and manually create the user if needed.",
+        "options": {}
+      },
+      "id": "notify-admin-error",
+      "name": "Notify Admin - Error",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1250, 350],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log registration failure\nconst errorData = {\n  timestamp: new Date().toISOString(),\n  event: 'user_registration_failed',\n  email: $node[\"Generate Password\"].json.email,\n  name: $node[\"Generate Password\"].json.name,\n  error: $node[\"Register Fusio User\"].json,\n  adminNotified: true\n};\n\nconsole.error('User registration failed:', errorData);\n\nreturn [{\n  json: {\n    success: false,\n    message: 'User registration failed',\n    ...errorData\n  }\n}];"
+      },
+      "id": "log-error",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [1450, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\"success\": false, \"error\": \"Invalid passphrase\"})}}",
+        "responseHeaders": {
+          "entries": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "responseCode": 401
+      },
+      "id": "reject-invalid",
+      "name": "Reject - Invalid Passphrase",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "responseHeaders": {
+          "entries": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "responseCode": "={{$json.success ? 200 : 500}}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 275]
+    }
+  ],
+  "connections": {
+    "Google Forms Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Passphrase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Passphrase": {
+      "main": [
+        [
+          {
+            "node": "Generate Password",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject - Invalid Passphrase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Password": {
+      "main": [
+        [
+          {
+            "node": "Register Fusio User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Fusio User": {
+      "main": [
+        [
+          {
+            "node": "Check Registration Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Registration Success": {
+      "main": [
+        [
+          {
+            "node": "Send Credentials Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Admin - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Credentials Email": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin - Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "1.0.0",
+  "triggerCount": 1
+}
