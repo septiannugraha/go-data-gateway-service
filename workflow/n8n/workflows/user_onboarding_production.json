@@ -1,0 +1,357 @@
+{
+  "name": "User Onboarding - Production",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "google-forms-webhook-prod",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "prod-4570214e-6a91-4151-9663-cf87d0f16607",
+      "name": "Google Forms Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        224
+      ],
+      "webhookId": "google-forms-registration-prod",
+      "notes": "Production webhook endpoint.\nReceives form submissions from Google Forms."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"body\"][\"passphrase\"]}}",
+              "value2": "=spse2025"
+            }
+          ]
+        }
+      },
+      "id": "prod-d063b341-0d16-4974-bcbd-cf90619aecae",
+      "name": "Validate Passphrase",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Pure JavaScript password generator for n8n - PRODUCTION VERSION\n\n// Get the input data from n8n (using correct n8n variables)\nconst inputData = $input.all()[0].json;\n\n// Extract form data - check if it's in body or root level\nconst formData = inputData.body || inputData;\nconst email = formData.email;\nconst name = formData.name;\n\n// Random integer function using Math.random\nfunction getRandomInt(min, max) {\n  return Math.floor(Math.random() * (max - min)) + min;\n}\n\n// Password generation function\nfunction generatePassword(length = 16) {\n  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';\n  const lowercase = 'abcdefghijklmnopqrstuvwxyz';\n  const numbers = '0123456789';\n  const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';\n  \n  // Combine all character sets\n  const allChars = uppercase + lowercase + numbers + symbols;\n  \n  // Ensure at least one character from each set\n  let password = [];\n  password.push(uppercase[getRandomInt(0, uppercase.length)]);\n  password.push(lowercase[getRandomInt(0, lowercase.length)]);\n  password.push(numbers[getRandomInt(0, numbers.length)]);\n  password.push(symbols[getRandomInt(0, symbols.length)]);\n  \n  // Fill the rest with random characters\n  for (let i = password.length; i < length; i++) {\n    password.push(allChars[getRandomInt(0, allChars.length)]);\n  }\n  \n  // Shuffle the password array\n  for (let i = password.length - 1; i > 0; i--) {\n    const j = getRandomInt(0, i + 1);\n    const temp = password[i];\n    password[i] = password[j];\n    password[j] = temp;\n  }\n  \n  return password.join('');\n}\n\n// Check password strength\nfunction checkPasswordStrength(password) {\n  let strength = 0;\n  \n  // Length check\n  if (password.length >= 16) strength += 2;\n  else if (password.length >= 12) strength += 1;\n  \n  // Character variety checks\n  if (/[a-z]/.test(password)) strength++;\n  if (/[A-Z]/.test(password)) strength++;\n  if (/[0-9]/.test(password)) strength++;\n  if (/[^a-zA-Z0-9]/.test(password)) strength++;\n  \n  // Determine strength level\n  if (strength >= 6) return 'very strong';\n  if (strength >= 5) return 'strong';\n  if (strength >= 3) return 'medium';\n  return 'weak';\n}\n\n// Generate password\nconst password = generatePassword(16);\nconst passwordStrength = checkPasswordStrength(password);\n\n// Return data in n8n format\nreturn [{\n  json: {\n    email: email,\n    name: name,\n    password: password,\n    passwordStrength: passwordStrength,\n    timestamp: new Date().toISOString(),\n    formId: formData.formId || 'unknown'\n  }\n}];"
+      },
+      "id": "prod-b0d6d59d-caf1-4798-ba78-c5d775b1dea0",
+      "name": "Generate Password",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        80,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.FUSIO_PRODUCTION_URL}}/consumer/register",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{$env.FUSIO_PRODUCTION_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{$json[0][\"json\"][\"name\"]}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$json[0][\"json\"][\"email\"]}}"
+            },
+            {
+              "name": "password",
+              "value": "={{$json[0][\"json\"][\"password\"]}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "prod-3f08cc31-f91c-49f5-a882-2a67272f271f",
+      "name": "Register Fusio User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        288,
+        176
+      ],
+      "continueOnFail": true,
+      "notes": "PRODUCTION CONFIGURATION REQUIRED:\n\nSet these environment variables in n8n:\n1. FUSIO_PRODUCTION_URL - The production Fusio API URL (e.g., https://api.yourdomain.com)\n2. FUSIO_PRODUCTION_API_KEY - Your production Fusio API key\n\nTo set environment variables in n8n:\n- Go to Settings → Environment Variables\n- Add the variables with their production values"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"success\"]}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "prod-479247f2-b396-4726-b333-b9afa5754387",
+      "name": "Check Registration Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        496,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=no-reply.spse@inaproc.id",
+        "toEmail": "={{$('Generate Password').item.json[0].json.email}}",
+        "subject": "Welcome to SPSE Data Gateway - Your API Credentials",
+        "html": "=<html>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n  <div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <h2 style=\"color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;\">Welcome to SPSE Data Gateway!</h2>\n    \n    <p>Dear {{$('Generate Password').item.json[0].json.name}},</p>\n    \n    <p>Your account has been successfully created. Below are your API credentials:</p>\n    \n    <div style=\"background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h3 style=\"margin-top: 0; color: #495057;\">Your Credentials</h3>\n      <p><strong>Email:</strong> {{$('Generate Password').item.json[0].json.email}}</p>\n      <p><strong>Password:</strong> <code style=\"background-color: #fff3cd; padding: 2px 5px; border-radius: 3px; font-size: 14px;\">{{$('Generate Password').item.json[0].json.password}}</code></p>\n      <p><strong>Password Strength:</strong> {{$('Generate Password').item.json[0].json.passwordStrength}}</p>\n    </div>\n    \n    <div style=\"background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h4 style=\"margin-top: 0; color: #0c5460;\">Important Security Notes:</h4>\n      <ul style=\"margin: 10px 0; padding-left: 20px;\">\n        <li>Please save your password in a secure location</li>\n        <li>This password cannot be recovered if lost</li>\n        <li>Do not share your credentials with anyone</li>\n        <li>We recommend changing your password after first login</li>\n      </ul>\n    </div>\n    \n    <div style=\"background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h4 style=\"margin-top: 0; color: #155724;\">Getting Started:</h4>\n      <p>You can now use these credentials to access the SPSE Data Gateway API.</p>\n      <p>API Documentation: <a href=\"https://api.spse-gateway.com/docs\" style=\"color: #007bff;\">https://api.spse-gateway.com/docs</a></p>\n      <p>Support: <a href=\"mailto:support@spse-gateway.com\" style=\"color: #007bff;\">support@spse-gateway.com</a></p>\n    </div>\n    \n    <p style=\"margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px;\">\n      This is an automated message. Please do not reply to this email.<br>\n      If you did not request this account, please contact our support team immediately.\n    </p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "prod-069794c4-25d0-47b8-b946-a4c21e32f18c",
+      "name": "Send Credentials Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        688,
+        128
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "HyBZp4Z8Mh2hT5q4",
+          "name": "SMTP account 2"
+        }
+      },
+      "notes": "PRODUCTION: Sends email to the actual user's email address from the form submission."
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log successful registration - PRODUCTION\nconst logData = {\n  timestamp: new Date().toISOString(),\n  event: 'user_registration_success',\n  environment: 'production',\n  email: $node[\"Generate Password\"].json.email,\n  name: $node[\"Generate Password\"].json.name,\n  fusioResponse: $node[\"Register Fusio User\"].json,\n  emailSent: true\n};\n\nconsole.log('PRODUCTION - User registration successful:', logData);\n\n// You can also send to monitoring service\nreturn [{\n  json: {\n    success: true,\n    message: 'User registered and notified successfully',\n    ...logData\n  }\n}];"
+      },
+      "id": "prod-9eea2bf9-924a-4bdc-a4db-2fc7642389e2",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        896,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=no-reply.spse@inaproc.id",
+        "toEmail": "={{$env.ADMIN_EMAIL || 'septian.adi.nugraha@gmail.com'}}",
+        "subject": "[PRODUCTION] User Registration Failed - Action Required",
+        "html": "=<html>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\">\n  <div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <h2 style=\"color: #dc3545; border-bottom: 2px solid #dc3545; padding-bottom: 10px;\">⚠️ PRODUCTION - User Registration Failed</h2>\n    \n    <p style=\"background-color: #f8d7da; padding: 10px; border-radius: 5px;\"><strong>Environment: PRODUCTION</strong></p>\n    \n    <p>A user registration attempt has failed and requires your immediate attention.</p>\n    \n    <div style=\"background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h3 style=\"margin-top: 0; color: #721c24;\">Registration Details:</h3>\n      <p><strong>Email:</strong> {{$node[\"Generate Password\"].json.email}}</p>\n      <p><strong>Name:</strong> {{$node[\"Generate Password\"].json.name}}</p>\n      <p><strong>Timestamp:</strong> {{$node[\"Generate Password\"].json.timestamp}}</p>\n      <p><strong>API URL:</strong> {{$env.FUSIO_PRODUCTION_URL}}</p>\n    </div>\n    \n    <div style=\"background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h4 style=\"margin-top: 0; color: #856404;\">Error Details:</h4>\n      <pre style=\"background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;\">{{JSON.stringify($node[\"Register Fusio User\"].json, null, 2)}}</pre>\n    </div>\n    \n    <div style=\"background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 5px; padding: 15px; margin: 20px 0;\">\n      <h4 style=\"margin-top: 0; color: #0c5460;\">Recommended Actions:</h4>\n      <ul style=\"margin: 10px 0; padding-left: 20px;\">\n        <li>Check Fusio API availability</li>\n        <li>Verify user doesn't already exist</li>\n        <li>Review API credentials and permissions</li>\n        <li>Check server logs for detailed error information</li>\n        <li>Verify FUSIO_PRODUCTION_URL and FUSIO_PRODUCTION_API_KEY are correctly set</li>\n      </ul>\n    </div>\n    \n    <p style=\"margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px;\">\n      This is an automated alert from the SPSE Data Gateway PRODUCTION registration system.\n    </p>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "prod-f7fa10f5-f742-4d81-a3df-b19489a3ffd9",
+      "name": "Notify Admin - Error",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        688,
+        272
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "HyBZp4Z8Mh2hT5q4",
+          "name": "SMTP account 2"
+        }
+      },
+      "notes": "Sends to admin email (can be set via ADMIN_EMAIL env variable, defaults to septian.adi.nugraha@gmail.com)"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log registration failure - PRODUCTION\nconst errorData = {\n  timestamp: new Date().toISOString(),\n  event: 'user_registration_failed',\n  environment: 'production',\n  email: $node[\"Generate Password\"].json.email,\n  name: $node[\"Generate Password\"].json.name,\n  error: $node[\"Register Fusio User\"].json,\n  adminNotified: true\n};\n\nconsole.error('PRODUCTION - User registration failed:', errorData);\n\nreturn [{\n  json: {\n    success: false,\n    message: 'User registration failed',\n    ...errorData\n  }\n}];"
+      },
+      "id": "prod-6f2bbf11-eca6-460d-b29c-c804863c3327",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.functionItem",
+      "typeVersion": 1,
+      "position": [
+        896,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\"success\": false, \"error\": \"Invalid passphrase\"})}}",
+        "options": {}
+      },
+      "id": "prod-e4e8cdc9-90b4-4c9c-92dd-2e1bfd198357",
+      "name": "Reject - Invalid Passphrase",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        80,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "prod-d035e2f5-8132-4a10-8545-b6562bf01d06",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Forms Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Passphrase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Passphrase": {
+      "main": [
+        [
+          {
+            "node": "Generate Password",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject - Invalid Passphrase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Password": {
+      "main": [
+        [
+          {
+            "node": "Register Fusio User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Fusio User": {
+      "main": [
+        [
+          {
+            "node": "Check Registration Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Registration Success": {
+      "main": [
+        [
+          {
+            "node": "Send Credentials Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Admin - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Credentials Email": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin - Error": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "prod-4928c5e8-70d0-429f-8e89-420650e35852",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "production-instance"
+  },
+  "id": "prod-am0GKyo1dsZjMsIV",
+  "tags": ["production", "user-onboarding"],
+  "notes": "PRODUCTION WORKFLOW - User Onboarding\n\n⚠️ IMPORTANT SETUP REQUIRED:\n\n1. Environment Variables (Settings → Environment Variables):\n   - FUSIO_PRODUCTION_URL: Your production Fusio API URL (e.g., https://api.yourdomain.com)\n   - FUSIO_PRODUCTION_API_KEY: Your production Fusio API key\n   - ADMIN_EMAIL: (Optional) Admin email for error notifications (defaults to septian.adi.nugraha@gmail.com)\n\n2. SMTP Credentials:\n   - Already configured with the same SMTP settings as test workflow\n   - Verify SMTP credentials are set in Credentials → SMTP account 2\n\n3. Webhook URL for Google Forms:\n   - Production: https://your-n8n-domain.com/webhook/google-forms-webhook-prod\n\n4. Key Differences from Test Workflow:\n   - Uses environment variables for Fusio URL and API key\n   - Sends credentials email to the actual user's email address\n   - All logs marked as 'production' for easy filtering\n   - Webhook path is 'google-forms-webhook-prod' to avoid conflicts\n\n5. Testing:\n   - Set environment variables first\n   - Activate the workflow\n   - Test with a real email address to verify delivery"
+}
