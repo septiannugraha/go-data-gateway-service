@@ -337,3 +337,29 @@ workflow/coverage/
 workflow/.env.test
 workflow/test-results/
 workflow/package-lock.json
+
+# =============================================================================
+# WORKFLOW - n8n automation setup
+# =============================================================================
+
+# Internal setup documentation (contain credentials or internal details)
+workflow/COMPLETE_SETUP_SUMMARY.md
+workflow/FUSIO_DEPLOYMENT_GUIDE.md
+workflow/FUSIO_SETUP_INSTRUCTIONS.md
+workflow/N8N_SMTP_SETUP.md
+workflow/*_SETUP*.md
+workflow/*_INSTRUCTIONS*.md
+workflow/*_SUMMARY.md
+workflow/*_GUIDE.md
+
+# Fusio deployment files with credentials
+workflow/docker-compose-fusio.yml
+workflow/run-fusio.sh
+
+# Test files with credential examples
+workflow/test-smtp.js
+workflow/test-*.js
+
+# Windows metadata files
+*.json:Zone.Identifier
+*:Zone.Identifier
