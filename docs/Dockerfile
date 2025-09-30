@@ -2,8 +2,12 @@
 
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+COPY source.config.ts ./
+COPY next.config.mjs ./
+COPY tsconfig.json ./
+COPY mdx-components.tsx ./
+RUN npm install
 
 FROM node:22-alpine AS builder
 WORKDIR /app

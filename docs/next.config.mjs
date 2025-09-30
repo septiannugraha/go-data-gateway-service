@@ -4,12 +4,9 @@ const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
-  output: 'export', // Enable static export for Cloudflare Pages
+  // Server-first approach - removed static export
   reactStrictMode: true,
-  images: {
-    unoptimized: true, // Disable image optimization for static builds
-  },
-  trailingSlash: true, // Add trailing slashes for better static hosting compatibility
+  // Re-enable image optimization for SSR
 };
 
 export default withMDX(config);

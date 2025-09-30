@@ -4,13 +4,11 @@
   "private": true,
   "scripts": {
     "build": "npm run generate-docs && next build",
-    "build:cf": "npm run generate-docs && next build",
-    "build:static": "npm run generate-docs && next build",
     "dev": "next dev --turbo",
     "start": "next start",
     "postinstall": "fumadocs-mdx",
     "generate-docs": "tsx scripts/generate-docs.mts",
-    "preview": "npm run build:static && npx serve out"
+    "preview": "npm run build && npm run start"
   },
   "dependencies": {
     "@types/js-yaml": "^4.0.9",
