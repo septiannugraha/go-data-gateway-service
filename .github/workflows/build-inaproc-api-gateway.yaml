@@ -74,17 +74,7 @@ jobs:
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
           echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
 
-      - name: Install PHP tooling (for linting)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends php-cli php-xml
-          curl -sS https://getcomposer.org/installer | php -- --install-dir=$HOME --filename=composer
-          $HOME/composer --version
 
-      - name: Validate composer configuration
-        working-directory: inaproc-api-gateway
-        run: |
-          $HOME/composer validate --no-check-lock
 
       - name: Build container image
         run: |

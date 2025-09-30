@@ -1,36 +1,13 @@
 # syntax=docker/dockerfile:1
 
-# Build dependencies and vendor packages
-FROM composer:2.8 AS vendor
-WORKDIR /app
-
-# Copy composer manifests and install without dev dependencies
-COPY composer.json composer.lock ./
-RUN composer install \
-    --no-dev \
-    --prefer-dist \
-    --no-interaction \
-    --no-progress \
-    --ignore-platform-req=ext-soap \
-    --ignore-platform-req=ext-sockets
-
-# Copy application source and install optimized autoloader
-COPY . .
-RUN composer install \
-    --no-dev \
-    --prefer-dist \
-    --no-interaction \
-    --no-progress \
-    --optimize-autoloader \
-    --ignore-platform-req=ext-soap \
-    --ignore-platform-req=ext-sockets
-
-# Runtime image
-FROM php:8.2-apache
+# Simple PHP-FPM + Nginx approach
+FROM php:8.2-fpm
 
 # Install required system dependencies and PHP extensions
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+      nginx \
+      supervisor \
       git \
       unzip \
       curl \
@@ -55,14 +32,53 @@ RUN apt-get update && \
     docker-php-ext-enable redis && \
     rm -rf /var/lib/apt/lists/*
 
-# Configure Apache to serve the public directory and enable rewrite
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf && \
-    sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf && \
-    a2enmod rewrite headers
+# Copy pre-built application (including vendor/)
+COPY . /var/www/html
 
-# Copy application from builder image
-COPY --from=vendor /app /var/www/html
+# Configure nginx
+COPY <<EOF /etc/nginx/sites-available/default
+server {
+    listen 8080;
+    server_name _;
+    root /var/www/html/public;
+    index index.php;
+
+    location / {
+        try_files \$uri /index.php\$is_args\$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+EOF
+
+# Configure supervisor to run both nginx and php-fpm
+COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
+[supervisord]
+nodaemon=true
+user=root
+
+[program:php-fpm]
+command=php-fpm
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/php-fpm.log
+stderr_logfile=/var/log/php-fpm.log
+
+[program:nginx]
+command=nginx -g "daemon off;"
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/nginx.log
+stderr_logfile=/var/log/nginx.log
+EOF
+
+# Configure PHP-FPM to listen on 127.0.0.1:9000
+RUN sed -i 's/listen = \/run\/php\/php8.2-fpm.sock/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
 
 # Ensure correct ownership for runtime writes (cache, logs, etc.)
 RUN chown -R www-data:www-data /var/www/html && \
@@ -80,7 +96,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=5 \
 
 EXPOSE 8080
 
-# Switch Apache to listen on 8080 to align with container best practices
-RUN sed -ri 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
-
-CMD ["apache2-foreground"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
