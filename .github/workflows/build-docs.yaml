@@ -1,4 +1,4 @@
-name: Deploy Docs Portal
+name: Build Docs Portal Image
 
 on:
   push:
@@ -46,7 +46,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
 
       - name: Install dependencies
         working-directory: docs
