@@ -10,7 +10,9 @@ RUN composer install \
     --no-dev \
     --prefer-dist \
     --no-interaction \
-    --no-progress
+    --no-progress \
+    --ignore-platform-req=ext-soap \
+    --ignore-platform-req=ext-sockets
 
 # Copy application source and install optimized autoloader
 COPY . .
@@ -19,7 +21,9 @@ RUN composer install \
     --prefer-dist \
     --no-interaction \
     --no-progress \
-    --optimize-autoloader
+    --optimize-autoloader \
+    --ignore-platform-req=ext-soap \
+    --ignore-platform-req=ext-sockets
 
 # Runtime image
 FROM php:8.2-apache
@@ -34,15 +38,19 @@ RUN apt-get update && \
       libpq-dev \
       libzip-dev \
       libpng-dev \
-      libxml2-dev && \
+      libxml2-dev \
+      libmariadb-dev && \
     docker-php-ext-configure intl && \
     docker-php-ext-install -j"$(nproc)" \
       intl \
       opcache \
       pdo \
+      pdo_mysql \
       pdo_pgsql \
       pgsql \
-      zip && \
+      zip \
+      soap \
+      sockets && \
     pecl install redis && \
     docker-php-ext-enable redis && \
     rm -rf /var/lib/apt/lists/*
