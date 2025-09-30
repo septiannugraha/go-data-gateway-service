@@ -250,6 +250,8 @@ prometheus.yml
 API_TEST_COMMANDS.md
 Dockerfile
 Dockerfile.dev
+# Allow docs/Dockerfile for documentation builds
+!docs/Dockerfile
 docker-start.sh
 start.sh
 
