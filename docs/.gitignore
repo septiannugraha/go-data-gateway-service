@@ -1,6 +1,10 @@
 # deps
 /node_modules
 
+# package lock files (we use npm install instead of npm ci)
+package-lock.json
+yarn.lock
+
 # generated content
 .contentlayer
 .content-collections

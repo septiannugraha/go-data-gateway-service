@@ -46,20 +46,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
-        with:
-          path: docs/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('docs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache: 'npm'
 
       - name: Install dependencies
         working-directory: docs
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: npm ci
+        run: npm install
 
       - name: Build (sanity check)
         working-directory: docs
