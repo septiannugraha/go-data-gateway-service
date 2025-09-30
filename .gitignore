@@ -215,7 +215,7 @@ migrations/*.sql
 # =============================================================================
 
 # API specifications (auto-generated)
-inaproc-api.yaml
+# inaproc-api.yaml - commented out as needed for docs generation
 openapi.yaml
 swagger.yaml
 api-spec.json

@@ -1,0 +1,1689 @@
+openapi: 3.0.0
+info:
+  title: Inaproc API Gateway
+  description: API Gateway untuk integrasi sistem pengadaan pemerintah Indonesia
+  version: 1.0.0
+  contact:
+    email: api-support@inaproc.id
+    name: Inaproc API Support
+    url: https://api.inaproc.id
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/mock
+    description: Local mock server (untuk testing dan demo)
+  - url: https://api.inaproc.id/v1
+    description: Production server
+  - url: https://sandbox-api.inaproc.id/v1
+    description: Sandbox server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: Endpoint untuk autentikasi
+  - name: Tender
+    description: Layanan Tender dan Non Tender (bukan SPSE)
+  - name: Vendor
+    description: Layanan data Penyedia (bukan SIKAP)
+  - name: RUP
+    description: Rencana Umum Pengadaan (bukan SIRUP)
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login untuk mendapatkan access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: secretpassword
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                  token_type:
+                    type: string
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    example: 3600
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "user123"
+                      email:
+                        type: string
+                        example: "user@example.com"
+                      name:
+                        type: string
+                        example: "John Doe"
+              examples:
+                success:
+                  summary: Login berhasil
+                  value:
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                    token_type: "Bearer"
+                    expires_in: 3600
+                    user:
+                      id: "user123"
+                      email: "user@example.com"
+                      name: "John Doe"
+        '400':
+          description: Bad Request - Data login tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_credentials:
+                  summary: Email atau password tidak valid
+                  value:
+                    error:
+                      code: "INVALID_CREDENTIALS"
+                      message: "Email atau password yang Anda masukkan tidak valid"
+                      details: ["Pastikan email dan password benar"]
+                missing_fields:
+                  summary: Field wajib tidak lengkap
+                  value:
+                    error:
+                      code: "MISSING_REQUIRED_FIELDS"
+                      message: "Data yang diperlukan tidak lengkap"
+                      details: ["Field 'email' wajib diisi", "Field 'password' wajib diisi"]
+        '403':
+          description: Forbidden - Akses ditolak
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                account_locked:
+                  summary: Akun terkunci karena terlalu banyak percobaan login gagal
+                  value:
+                    error:
+                      code: "ACCOUNT_LOCKED"
+                      message: "Akun Anda telah terkunci sementara"
+                      details: ["Terlalu banyak percobaan login yang gagal", "Silakan coba lagi dalam 15 menit"]
+                account_disabled:
+                  summary: Akun dinonaktifkan
+                  value:
+                    error:
+                      code: "ACCOUNT_DISABLED"
+                      message: "Akun Anda telah dinonaktifkan"
+                      details: ["Hubungi administrator untuk mengaktifkan kembali akun"]
+        '429':
+          description: Too Many Requests - Terlalu banyak permintaan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rate_limit:
+                  summary: Rate limit tercapai
+                  value:
+                    error:
+                      code: "RATE_LIMIT_EXCEEDED"
+                      message: "Terlalu banyak permintaan dalam waktu singkat"
+                      details: ["Maksimal 5 percobaan login per menit"]
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                server_error:
+                  summary: Kesalahan server internal
+                  value:
+                    error:
+                      code: "INTERNAL_SERVER_ERROR"
+                      message: "Terjadi kesalahan pada server"
+                      details: ["Silakan coba lagi beberapa saat"]
+
+  /rup/download-file:
+    post:
+      tags: [RUP]
+      summary: Download File RUP (Rencana Umum Pengadaan)
+      description: Mengunduh file RUP dalam format Excel berdasarkan kriteria yang diberikan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lpse_id
+                - tahun
+                - format
+              properties:
+                lpse_id:
+                  type: string
+                  description: ID LPSE (kode instansi/KL/PD)
+                  example: "123"
+                tahun:
+                  type: integer
+                  description: Tahun data RUP
+                  minimum: 2020
+                  maximum: 2030
+                  example: 2024
+                bulan:
+                  type: integer
+                  description: Bulan data (opsional, jika tidak diisi akan mengambil seluruh tahun)
+                  minimum: 1
+                  maximum: 12
+                  example: 6
+                format:
+                  type: string
+                  enum: ["excel", "pdf", "csv"]
+                  description: Format file yang diinginkan
+                  example: "excel"
+                jenis_rup:
+                  type: string
+                  enum: ["penyedia", "swakelola", "semua"]
+                  description: Jenis RUP yang akan diunduh
+                  default: "semua"
+                  example: "penyedia"
+            examples:
+              download_excel:
+                summary: Download RUP format Excel
+                value:
+                  lpse_id: "123"
+                  tahun: 2024
+                  bulan: 6
+                  format: "excel"
+                  jenis_rup: "penyedia"
+              download_csv_yearly:
+                summary: Download RUP format CSV untuk seluruh tahun
+                value:
+                  lpse_id: "456"
+                  tahun: 2024
+                  format: "csv"
+                  jenis_rup: "semua"
+      responses:
+        '200':
+          description: File berhasil dibuat dan siap diunduh
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "File RUP berhasil dibuat"
+                  download_url:
+                    type: string
+                    format: uri
+                    example: "https://api.inaproc.id/v1/files/download/rup_2024_123.xlsx"
+                  file_info:
+                    type: object
+                    properties:
+                      filename:
+                        type: string
+                        example: "rup_penyedia_2024_123.xlsx"
+                      size:
+                        type: string
+                        example: "2.5 MB"
+                      total_records:
+                        type: integer
+                        example: 1250
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2024-08-28T10:30:00Z"
+                      expires_at:
+                        type: string
+                        format: date-time
+                        example: "2024-08-28T22:30:00Z"
+              examples:
+                excel_success:
+                  summary: File Excel berhasil dibuat
+                  value:
+                    status: "success"
+                    message: "File RUP berhasil dibuat"
+                    download_url: "https://api.inaproc.id/v1/files/download/rup_2024_123.xlsx"
+                    file_info:
+                      filename: "rup_penyedia_2024_123.xlsx"
+                      size: "2.5 MB"
+                      total_records: 1250
+                      created_at: "2024-08-28T10:30:00Z"
+                      expires_at: "2024-08-28T22:30:00Z"
+        '400':
+          description: Bad Request - Parameter tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_year:
+                  summary: Tahun tidak valid
+                  value:
+                    error:
+                      code: "INVALID_YEAR"
+                      message: "Tahun yang Anda masukkan tidak valid"
+                      details: ["Tahun harus antara 2020-2030"]
+                missing_lpse_id:
+                  summary: LPSE ID tidak diberikan
+                  value:
+                    error:
+                      code: "MISSING_LPSE_ID"
+                      message: "LPSE ID wajib diisi"
+                      details: ["Parameter lpse_id tidak boleh kosong"]
+                invalid_format:
+                  summary: Format file tidak didukung
+                  value:
+                    error:
+                      code: "INVALID_FORMAT"
+                      message: "Format file tidak didukung"
+                      details: ["Format yang didukung: excel, pdf, csv"]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Forbidden - Tidak memiliki akses ke LPSE ini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_access_to_lpse:
+                  summary: Tidak memiliki akses ke LPSE
+                  value:
+                    error:
+                      code: "NO_ACCESS_TO_LPSE"
+                      message: "Anda tidak memiliki akses ke LPSE ini"
+                      details: ["Hubungi administrator untuk mendapatkan akses ke LPSE 123"]
+        '404':
+          description: Data tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_data_found:
+                  summary: Tidak ada data RUP
+                  value:
+                    error:
+                      code: "NO_DATA_FOUND"
+                      message: "Tidak ada data RUP untuk kriteria yang diberikan"
+                      details: ["Pastikan LPSE ID, tahun, dan bulan benar"]
+        '429':
+          description: Too Many Requests - Terlalu banyak permintaan download
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                download_limit:
+                  summary: Batas download tercapai
+                  value:
+                    error:
+                      code: "DOWNLOAD_LIMIT_EXCEEDED"
+                      message: "Batas download per hari telah tercapai"
+                      details: ["Maksimal 10 file per hari per user"]
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # =========================
+  # Vendor (Penyedia)
+  # =========================
+  /vendor/penyedia:
+    get:
+      tags: [Vendor]
+      summary: Semua Penyedia
+      description: Mengambil daftar seluruh penyedia. Dapat difilter dengan lpse_id, tahun, dan bulan.
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar penyedia
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "vendor-001"
+                        nama:
+                          type: string
+                          example: "PT. Teknologi Maju Jaya"
+                        npwp:
+                          type: string
+                          example: "01.234.567.8-901.000"
+                        alamat:
+                          type: string
+                          example: "Jl. Sudirman No. 123, Jakarta Selatan"
+                        terverifikasi:
+                          type: boolean
+                          example: true
+                        kualifikasi:
+                          type: string
+                          example: "Besar"
+                        bidang_usaha:
+                          type: array
+                          items:
+                            type: string
+                          example: ["Teknologi Informasi", "Perangkat Lunak"]
+                        tanggal_daftar:
+                          type: string
+                          format: date
+                          example: "2024-01-15"
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  meta:
+                    type: object
+                    properties:
+                      total_verified:
+                        type: integer
+                        example: 1250
+                      total_unverified:
+                        type: integer
+                        example: 450
+              examples:
+                success:
+                  summary: Daftar penyedia berhasil diambil
+                  value:
+                    data:
+                      - id: "vendor-001"
+                        nama: "PT. Teknologi Maju Jaya"
+                        npwp: "01.234.567.8-901.000"
+                        alamat: "Jl. Sudirman No. 123, Jakarta Selatan"
+                        terverifikasi: true
+                        kualifikasi: "Besar"
+                        bidang_usaha: ["Teknologi Informasi", "Perangkat Lunak"]
+                        tanggal_daftar: "2024-01-15"
+                      - id: "vendor-002"
+                        nama: "CV. Mitra Konstruksi"
+                        npwp: "02.345.678.9-012.000"
+                        alamat: "Jl. Gatot Subroto No. 456, Jakarta Pusat"
+                        terverifikasi: false
+                        kualifikasi: "Menengah"
+                        bidang_usaha: ["Konstruksi", "Arsitektur"]
+                        tanggal_daftar: "2024-02-20"
+                    pagination:
+                      current_page: 1
+                      total_pages: 25
+                      total_items: 1700
+                      items_per_page: 100
+                    meta:
+                      total_verified: 1250
+                      total_unverified: 450
+                empty_results:
+                  summary: Tidak ada data penyedia
+                  value:
+                    data: []
+                    pagination:
+                      current_page: 1
+                      total_pages: 0
+                      total_items: 0
+                      items_per_page: 100
+                    meta:
+                      total_verified: 0
+                      total_unverified: 0
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /vendor/penyedia/terverifikasi:
+    get:
+      tags: [Vendor]
+      summary: Penyedia Terverifikasi
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar penyedia terverifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        nama:
+                          type: string
+                        status_verifikasi:
+                          type: string
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /vendor/penyedia/roaming:
+    get:
+      tags: [Vendor]
+      summary: Penyedia Roaming
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar penyedia roaming
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        nama:
+                          type: string
+                        asal_lpse:
+                          type: string
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /vendor/rekap/penyedia-bentuk-usaha:
+    get:
+      tags: [Vendor]
+      summary: Rekap Penyedia Berdasarkan Bentuk Usaha (CSV)
+      description: Menghasilkan rekap penyedia per bentuk usaha dalam format CSV.
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap penyedia per bentuk usaha
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /vendor/rekap/pemenang-tender:
+    get:
+      tags: [Vendor]
+      summary: Rekap Pemenang Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap pemenang tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /vendor/rincian/pemenang-tender:
+    get:
+      tags: [Vendor]
+      summary: Rincian Pemenang Tender
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Rincian pemenang tender
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    paket_id: { type: string }
+                    penyedia_id: { type: string }
+                    nilai_kontrak: { type: number }
+
+  /vendor/rekap/pemenang-non-tender:
+    get:
+      tags: [Vendor]
+      summary: Rekap Pemenang Non Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap pemenang non tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /vendor/rincian/pemenang-non-tender:
+    get:
+      tags: [Vendor]
+      summary: Rincian Pemenang Non Tender
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Rincian pemenang non tender
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    paket_id: { type: string }
+                    penyedia_id: { type: string }
+                    nilai_kontrak: { type: number }
+
+  # =========================
+  # Paket Tender
+  # =========================
+  /tender/paket:
+    get:
+      tags: [Tender]
+      summary: Rincian Paket Tender
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar paket tender
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tender'
+
+  /tender/paket/berjalan:
+    get:
+      tags: [Tender]
+      summary: Rincian Paket Tender Sedang Berjalan
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar paket tender yang sedang berjalan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tender'
+
+  /tender/paket/diulang:
+    get:
+      tags: [Tender]
+      summary: Paket Diulang
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar paket yang diulang
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tender'
+
+  /tender/rekap/bulanan:
+    get:
+      tags: [Tender]
+      summary: Rekap Bulanan Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap bulanan tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/tahunan:
+    get:
+      tags: [Tender]
+      summary: Rekap Tahunan Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+      responses:
+        '200':
+          description: Berkas CSV rekap tahunan tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/peserta:
+    get:
+      tags: [Tender]
+      summary: Rekap Peserta Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap peserta tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/total-per-satker:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Total Per Satker (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap total per satker
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/kategori:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Per Kategori Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per kategori tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/nilai:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Per Nilai Paket (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per rentang nilai paket
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/sumber-dana:
+    get:
+      tags: [Tender]
+      summary: Rekap Per Sumber Dana (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per sumber dana
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/pokja:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Pokja (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per pokja
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/pokja-anggota:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Anggota Pokja (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per anggota pokja
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/ppk:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket PPK (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per PPK
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/metode-pemilihan:
+    get:
+      tags: [Tender]
+      summary: Rekap Per Metode Pemilihan (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per metode pemilihan
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/sanggahan:
+    get:
+      tags: [Tender]
+      summary: Rekap Sanggahan Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap sanggahan tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /tender/rekap/kontrak:
+    get:
+      tags: [Tender]
+      summary: Rekap Kontrak Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap kontrak tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # =========================
+  # Paket Non Tender
+  # =========================
+  /non-tender/paket:
+    get:
+      tags: [Tender]
+      summary: Rincian Paket Non Tender
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Daftar paket non tender
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /non-tender/rekap/ppk:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Non Tender PPK (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap paket non tender per PPK
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/pencatatan:
+    get:
+      tags: [Tender]
+      summary: Rekap Pencatatan Non Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap pencatatan non tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/swakelola:
+    get:
+      tags: [Tender]
+      summary: Rekap Pencatatan Swakelola (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap swakelola
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/bulanan:
+    get:
+      tags: [Tender]
+      summary: Rekap Bulanan Non Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap bulanan non tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/tahunan:
+    get:
+      tags: [Tender]
+      summary: Rekap Tahunan Non Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+      responses:
+        '200':
+          description: Berkas CSV rekap tahunan non tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/total-per-satker:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Total Paket Non Tender Per Satker (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap total non tender per satker
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/non-etendering-pejabat:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Non Etendering Pejabat Pengadaan (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap non etendering per pejabat pengadaan
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/nilai-non-etendering:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Per Nilai Paket Non Etendering (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap per nilai paket non etendering
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/status-swakelola:
+    get:
+      tags: [Tender]
+      summary: Rekapitulasi Status Satuan Kerja Swakelola (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap status satker swakelola
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /non-tender/rekap/kontrak:
+    get:
+      tags: [Tender]
+      summary: Rekap Kontrak Non Tender (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: Berkas CSV rekap kontrak non tender
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # =========================
+  # E-Purchasing
+  # =========================
+  /epurchasing/rekap/paket:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket E-Purchasing (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket e-purchasing
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-paket:
+    get:
+      tags: [Tender]
+      summary: Rekap Per Paket E-Purchasing (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap per paket e-purchasing
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-satker:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Satker (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket per satker
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-jenis-penyedia:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Jenis Penyedia (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket per jenis penyedia
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-jenis-produk:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Jenis Produk (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket per jenis produk
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-status:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Per Status (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket per status
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-jenis-katalog:
+    get:
+      tags: [Tender]
+      summary: Rekap Per Jenis Katalog (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap per jenis katalog
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-penyedia:
+    get:
+      tags: [Tender]
+      summary: Rekap Per Penyedia (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap per penyedia katalog
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/per-ppk:
+    get:
+      tags: [Tender]
+      summary: Rekap Per PPK (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap per PPK katalog
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/penyedia-katalog:
+    get:
+      tags: [Tender]
+      summary: Rekap Penyedia Katalog (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap penyedia katalog
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/realisasi-per-satker:
+    get:
+      tags: [Tender]
+      summary: Rekap Realisasi Paket Per Satker (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap realisasi per satker
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /epurchasing/rekap/paket-lama-v2:
+    get:
+      tags: [Tender]
+      summary: Rekap Paket Lama (Katalog V2) (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap paket lama katalog v2
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # =========================
+  # Toko Daring
+  # =========================
+  /toko-daring/rekap/realisasi:
+    get:
+      tags: [Tender]
+      summary: Rekap Realisasi Toko Daring (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap realisasi toko daring
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /toko-daring/rekap/realisasi-per-marketplace:
+    get:
+      tags: [Tender]
+      summary: Rekap Realisasi Toko Daring Per Marketplace (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap realisasi per marketplace
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /toko-daring/rekap/realisasi-per-satker:
+    get:
+      tags: [Tender]
+      summary: Rekap Realisasi Toko Daring Per Satker (CSV)
+      parameters:
+        - $ref: '#/components/parameters/LpseId'
+        - $ref: '#/components/parameters/Tahun'
+        - $ref: '#/components/parameters/Bulan'
+      responses:
+        '200':
+          description: CSV rekap realisasi per satker
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  # =========================
+  # RUP
+  # =========================
+  /rup/rencana/penyedia:
+    get:
+      tags: [RUP]
+      summary: Rencana Pengadaan Penyedia
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+      responses:
+        '200':
+          description: Daftar rencana pengadaan penyedia
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProcurementPlan'
+
+  /rup/rencana/penyedia-konsolidasi:
+    get:
+      tags: [RUP]
+      summary: Rencana Pengadaan Penyedia Konsolidasi
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+      responses:
+        '200':
+          description: Daftar rencana pengadaan penyedia konsolidasi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProcurementPlan'
+
+  /rup/ringkasan/satker:
+    get:
+      tags: [RUP]
+      summary: Ringkasan Rencana Pengadaan Per Satker
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+      responses:
+        '200':
+          description: Ringkasan rencana pengadaan per satker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    satker: { type: string }
+                    total_paket: { type: integer }
+                    total_pagu: { type: number }
+
+  /rup/realisasi/penyedia-per-satker:
+    get:
+      tags: [RUP]
+      summary: Realisasi Rencana Pengadaan Penyedia Per Satker
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Realisasi rencana penyedia per satker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /rup/realisasi/swakelola-per-satker:
+    get:
+      tags: [RUP]
+      summary: Realisasi Rencana Pengadaan Swakelola Per Satker
+      parameters:
+        - $ref: '#/components/parameters/LpseIdOptional'
+        - $ref: '#/components/parameters/TahunOptional'
+        - $ref: '#/components/parameters/BulanOptional'
+      responses:
+        '200':
+          description: Realisasi rencana swakelola per satker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Token tidak valid atau telah kedaluwarsa
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalid_token:
+              summary: Token tidak valid
+              value:
+                error:
+                  code: "INVALID_TOKEN"
+                  message: "Token yang Anda gunakan tidak valid"
+                  details: ["Silakan login ulang untuk mendapatkan token baru"]
+            expired_token:
+              summary: Token kedaluwarsa
+              value:
+                error:
+                  code: "TOKEN_EXPIRED"
+                  message: "Token Anda telah kedaluwarsa"
+                  details: ["Silakan login ulang untuk mendapatkan token baru"]
+    
+    ForbiddenError:
+      description: Akses ditolak - Anda tidak memiliki izin untuk mengakses resource ini
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            insufficient_permissions:
+              summary: Izin tidak mencukupi
+              value:
+                error:
+                  code: "INSUFFICIENT_PERMISSIONS"
+                  message: "Anda tidak memiliki izin untuk mengakses resource ini"
+                  details: ["Hubungi administrator untuk mendapatkan akses"]
+    
+    NotFoundError:
+      description: Resource tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            resource_not_found:
+              summary: Data tidak ditemukan
+              value:
+                error:
+                  code: "RESOURCE_NOT_FOUND"
+                  message: "Data yang Anda cari tidak ditemukan"
+                  details: ["Pastikan parameter yang Anda berikan benar"]
+    
+    BadRequestError:
+      description: Permintaan tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalid_parameters:
+              summary: Parameter tidak valid
+              value:
+                error:
+                  code: "INVALID_PARAMETERS"
+                  message: "Parameter yang Anda berikan tidak valid"
+                  details: ["Periksa kembali format dan nilai parameter"]
+    
+    InternalServerError:
+      description: Kesalahan server internal
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            server_error:
+              summary: Kesalahan server
+              value:
+                error:
+                  code: "INTERNAL_SERVER_ERROR"
+                  message: "Terjadi kesalahan pada server"
+                  details: ["Silakan coba lagi beberapa saat"]
+
+  parameters:
+    LpseId:
+      name: lpse_id
+      in: query
+      required: true
+      schema:
+        type: string
+      description: ID LPSE (kode instansi/KL/PD)
+    Tahun:
+      name: tahun
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 2000
+      description: Tahun data
+    Bulan:
+      name: bulan
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+      description: Bulan data (1-12)
+    LpseIdOptional:
+      name: lpse_id
+      in: query
+      required: false
+      schema:
+        type: string
+      description: ID LPSE (opsional)
+    TahunOptional:
+      name: tahun
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 2000
+      description: Tahun (opsional)
+    BulanOptional:
+      name: bulan
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+      description: Bulan (opsional)
+
+  schemas:
+    Tender:
+      type: object
+      properties:
+        id:
+          type: string
+          example: TENDER-2024-001
+        title:
+          type: string
+          example: Pengadaan Komputer Kantor
+        agency:
+          type: string
+          example: Kementerian Keuangan
+        budget:
+          type: number
+          example: 500000000
+        status:
+          type: string
+          enum: [active, completed, cancelled]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    VendorPerformance:
+      type: object
+      properties:
+        vendor_id:
+          type: string
+        vendor_name:
+          type: string
+        overall_score:
+          type: number
+          minimum: 0
+          maximum: 100
+        total_projects:
+          type: integer
+        completed_projects:
+          type: integer
+        performance_metrics:
+          type: object
+          properties:
+            quality:
+              type: number
+            timeliness:
+              type: number
+            compliance:
+              type: number
+
+    ProcurementPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        agency:
+          type: string
+        year:
+          type: integer
+        total_budget:
+          type: number
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              category:
+                type: string
+              estimated_value:
+                type: number
+              procurement_method:
+                type: string
+
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        total_pages:
+          type: integer
+        total_items:
+          type: integer
+        items_per_page:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: string
