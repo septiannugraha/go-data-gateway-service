@@ -1,0 +1,114 @@
+name: Build Data Gateway Service
+
+on:
+  push:
+    branches:
+      - ga-docs
+    paths:
+      - 'data-gateway-service/**'
+      - '.github/workflows/build-data-gateway-service.yaml'
+  pull_request:
+    branches:
+      - ga-docs
+    paths:
+      - 'data-gateway-service/**'
+      - '.github/workflows/build-data-gateway-service.yaml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Optional image tag override (defaults to trimmed commit SHA)'
+        required: false
+
+env:
+  GCP_PROJECT_ID: luminous-lodge-376415
+  GAR_LOCATION: asia-southeast2
+  GAR_REPOSITORY: jenkins
+  IMAGE_NAME: inaproc-data-gateway-service
+  GKE_CLUSTER: default
+  GKE_LOCATION: asia-southeast2
+  GKE_NAMESPACE: data-gateway
+  DEPLOYMENT_NAME: data-gateway-service
+  CONTAINER_NAME: data-gateway-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Run tests
+        working-directory: data-gateway-service
+        run: go test ./...
+
+      - name: Exchange github oidc token
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: projects/815883525249/locations/global/workloadIdentityPools/github-action/providers/github-action
+          service_account: jenkins@luminous-lodge-376415.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Artifact Registry authentication
+        run: |
+          gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev -q
+
+      - name: Determine image tag
+        id: metadata
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          if [[ -n "$INPUT_IMAGE_TAG" ]]; then
+            IMAGE_TAG="$INPUT_IMAGE_TAG"
+          else
+            IMAGE_TAG="${GITHUB_SHA:0:12}"
+          fi
+          IMAGE_URI="$GAR_LOCATION-docker.pkg.dev/$GCP_PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+
+      - name: Build container image
+        run: |
+          docker build \
+            --file data-gateway-service/Dockerfile \
+            --tag "$IMAGE_URI" \
+            data-gateway-service
+
+      - name: Push container image
+        run: docker push "$IMAGE_URI"
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+
+      - name: Deploy to GKE
+        run: |
+          kubectl -n "$GKE_NAMESPACE" set image deployment/"$DEPLOYMENT_NAME" "$CONTAINER_NAME"="$IMAGE_URI"
+          kubectl -n "$GKE_NAMESPACE" rollout status deployment/"$DEPLOYMENT_NAME" --timeout=5m
+
+      - name: Summary
+        run: |
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: `${{ steps.metadata.outputs.image_uri }}`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Namespace: **$GKE_NAMESPACE**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployment: **$DEPLOYMENT_NAME**" >> "$GITHUB_STEP_SUMMARY"

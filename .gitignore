@@ -132,8 +132,7 @@ inaproc-api-gateway/var/
 inaproc-api-gateway/log/
 inaproc-api-gateway/tmp/
 
-# Fusio configuration files
-inaproc-api-gateway/.env
+# Fusio configuration files (allow .env for container builds)
 !inaproc-api-gateway/.env.example
 
 # Fusio generated files
@@ -250,8 +249,14 @@ prometheus.yml
 API_TEST_COMMANDS.md
 Dockerfile
 Dockerfile.dev
-# Allow docs/Dockerfile for documentation builds
+# Allow essential Dockerfiles for builds
 !docs/Dockerfile
+!inaproc-api-gateway/Dockerfile
+!data-gateway-service/Dockerfile
+!data-gateway-service/Dockerfile.dev
+!data-gateway-service/docker-compose.override.yml
+!data-gateway-service/docker-start.sh
+!data-gateway-service/start.sh
 docker-start.sh
 start.sh
 
