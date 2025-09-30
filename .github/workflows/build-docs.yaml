@@ -1,0 +1,103 @@
+name: Deploy Docs Portal
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/build-docs.yaml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/build-docs.yaml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Optional image tag override (defaults to trimmed commit SHA)'
+        required: false
+
+env:
+  GCP_PROJECT_ID: luminous-lodge-376415
+  GAR_LOCATION: asia-southeast2
+  GAR_REPOSITORY: jenkins
+  IMAGE_NAME: inaproc-apigateway-docs
+  GKE_CLUSTER: default
+  GKE_LOCATION: asia-southeast2
+  GKE_NAMESPACE: docs
+  DEPLOYMENT_NAME: inaproc-docs
+  CONTAINER_NAME: docs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm ci
+
+      - name: Build (sanity check)
+        working-directory: docs
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_ENV: production
+        run: npm run build
+
+      - name: Exchange github oidc token
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: projects/815883525249/locations/global/workloadIdentityPools/github-action/providers/github-action
+          service_account: jenkins@luminous-lodge-376415.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Setup credential
+        run: |
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
+
+      - name: Determine image tag
+        id: metadata
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          if [[ -n "$INPUT_IMAGE_TAG" ]]; then
+            IMAGE_TAG="$INPUT_IMAGE_TAG"
+          else
+            IMAGE_TAG="${GITHUB_SHA:0:12}"
+          fi
+          IMAGE_URI="$GAR_LOCATION-docker.pkg.dev/$GCP_PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+
+      - name: Build container image
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: |
+          docker build \
+            --file docs/Dockerfile \
+            --tag "$IMAGE_URI" \
+            docs
+
+      - name: Push container image
+        run: docker push "$IMAGE_URI"
