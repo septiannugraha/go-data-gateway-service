@@ -94,18 +94,6 @@ jobs:
       - name: Push container image
         run: docker push "$IMAGE_URI"
 
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v1
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-          cluster_name: ${{ env.GKE_CLUSTER }}
-          location: ${{ env.GKE_LOCATION }}
-
-      - name: Deploy to GKE
-        run: |
-          kubectl -n "$GKE_NAMESPACE" set image deployment/"$DEPLOYMENT_NAME" "$CONTAINER_NAME"="$IMAGE_URI"
-          kubectl -n "$GKE_NAMESPACE" rollout status deployment/"$DEPLOYMENT_NAME" --timeout=5m
-
       - name: Summary
         run: |
           echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
