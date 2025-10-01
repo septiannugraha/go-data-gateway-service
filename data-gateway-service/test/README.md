@@ -327,7 +327,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: general
     steps:
       - uses: actions/checkout@v2
 

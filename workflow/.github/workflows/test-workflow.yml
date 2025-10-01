@@ -31,7 +31,7 @@ on:
 jobs:
   unit-tests:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: general
     if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'unit' || github.event.inputs.test_type == ''
 
     steps:
@@ -73,7 +73,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: general
     if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == ''
 
     services:
@@ -154,7 +154,7 @@ jobs:
 
   e2e-tests:
     name: End-to-End Tests
-    runs-on: ubuntu-latest
+    runs-on: general
     if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'e2e'
 
     steps:
@@ -200,7 +200,7 @@ jobs:
 
   load-tests:
     name: Load Tests
-    runs-on: ubuntu-latest
+    runs-on: general
     if: github.event.inputs.test_type == 'load'
 
     steps:
@@ -239,7 +239,7 @@ jobs:
 
   security-tests:
     name: Security Tests
-    runs-on: ubuntu-latest
+    runs-on: general
     if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'security' || github.event.inputs.test_type == ''
 
     steps:
@@ -281,7 +281,7 @@ jobs:
 
   test-summary:
     name: Test Summary
-    runs-on: ubuntu-latest
+    runs-on: general
     needs: [unit-tests, integration-tests, security-tests]
     if: always()
 
