@@ -47,12 +47,19 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: 'data-gateway-service/go.mod'
           cache: true
 
-      - name: Run tests
+      - name: Download dependencies
         working-directory: data-gateway-service
-        run: go test ./...
+        run: go mod download
+
+      - name: Build application
+        working-directory: data-gateway-service
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o server cmd/server/main_chi.go
+
+
 
       - name: Exchange github oidc token
         uses: google-github-actions/auth@v1

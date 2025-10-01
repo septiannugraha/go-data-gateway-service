@@ -188,7 +188,7 @@ func initializeCache(cfg *config.Config, logger *zap.Logger) cache.Cache {
 		return &cache.NoOpCache{}
 	}
 
-	cacheService, err := cache.NewRedisCacheFromConfig(cfg.Redis, logger)
+	cacheService, err := cache.NewRedisCache(cfg.Redis, logger)
 	if err != nil {
 		logger.Warn("Failed to initialize Redis cache, using no-op cache", zap.Error(err))
 		return &cache.NoOpCache{}

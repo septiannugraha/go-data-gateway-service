@@ -48,7 +48,7 @@ log/
 
 # Cache and temporary files
 .cache/
-cache/
+# cache/ - removed to allow source code directories named 'cache'
 *.tmp
 *.temp
 *.backup
