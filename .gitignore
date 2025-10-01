@@ -378,5 +378,5 @@ workflow/*.idx
 workflow/*.glo
 workflow/*.ist
 
-# Keep only the source Markdown
-!workflow/N8N_MASTERY_BOOK.md
+# Source Markdown (internal documentation)
+workflow/N8N_MASTERY_BOOK.md
