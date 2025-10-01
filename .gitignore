@@ -48,7 +48,6 @@ log/
 
 # Cache and temporary files
 .cache/
-cache/
 *.tmp
 *.temp
 *.backup
@@ -363,3 +362,21 @@ workflow/test-*.js
 # Windows metadata files
 *.json:Zone.Identifier
 *:Zone.Identifier
+
+# =============================================================================
+# N8N MASTERY BOOK - LaTeX documentation (exclude from commits)
+# =============================================================================
+
+# LaTeX generated files
+workflow/*.tex
+workflow/*.pdf
+workflow/*.aux
+workflow/*.toc
+workflow/*.out
+workflow/*.log
+workflow/*.idx
+workflow/*.glo
+workflow/*.ist
+
+# Keep only the source Markdown
+!workflow/N8N_MASTERY_BOOK.md
