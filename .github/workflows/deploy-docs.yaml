@@ -1,6 +1,12 @@
 name: Deploy Docs to GKE
 
 on:
+  push:
+    branches:
+      - ga-deployment
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yaml'
   workflow_dispatch:
     inputs:
       image_tag:
