@@ -29,8 +29,6 @@ desktop.ini
 .env.local
 .env.*.local
 .env.docker
-!.env.example
-!.env.docker.example
 
 # Security and credentials
 credentials/
@@ -194,7 +192,6 @@ docs/yarn-error.log*
 # =============================================================================
 
 # Docker overrides and data
-docker-compose.override.yml
 docker-data/
 data/
 
@@ -232,32 +229,9 @@ coverage/
 # LEGACY FILES (from previous structure)
 # =============================================================================
 
-# Legacy Go files (now moved to data-gateway-service/)
-/go-data-gateway
-/bin/
-/dist/
-/tmp/
-server-chi
-test-server
-go-data-gateway-chi
-bigquery/
-prometheus.yml
-
 # Legacy config files
 .air.toml
 API_TEST_COMMANDS.md
-Dockerfile
-Dockerfile.dev
-# Allow essential Dockerfiles for builds
-!docs/Dockerfile
-!inaproc-api-gateway/Dockerfile
-!data-gateway-service/Dockerfile
-!data-gateway-service/Dockerfile.dev
-!data-gateway-service/docker-compose.override.yml
-!data-gateway-service/docker-start.sh
-!data-gateway-service/start.sh
-docker-start.sh
-start.sh
 
 # Legacy directories
 /talks/

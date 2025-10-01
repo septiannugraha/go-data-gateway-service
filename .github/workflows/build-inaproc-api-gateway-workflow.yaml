@@ -1,0 +1,90 @@
+name: Build Inaproc API Gateway Workflow
+
+on:
+  push:
+    branches:
+      - ga-docs
+    paths:
+      - 'workflow/**'
+      - '.github/workflows/build-inaproc-api-gateway-workflow.yaml'
+  pull_request:
+    branches:
+      - ga-docs
+    paths:
+      - 'workflow/**'
+      - '.github/workflows/build-inaproc-api-gateway-workflow.yaml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Optional image tag override (defaults to trimmed commit SHA)'
+        required: false
+
+env:
+  GCP_PROJECT_ID: luminous-lodge-376415
+  GAR_LOCATION: asia-southeast2
+  GAR_REPOSITORY: jenkins
+  IMAGE_NAME: inaproc-api-gateway-workflow
+  GKE_CLUSTER: default
+  GKE_LOCATION: asia-southeast2
+  GKE_NAMESPACE: inaproc
+  DEPLOYMENT_NAME: inaproc-api-gateway
+  CONTAINER_NAME: inaproc-api-gateway
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Exchange github oidc token
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: projects/815883525249/locations/global/workloadIdentityPools/github-action/providers/github-action
+          service_account: jenkins@luminous-lodge-376415.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Artifact Registry authentication
+        run: |
+          gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev -q
+
+      - name: Determine image tag
+        id: metadata
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          if [[ -n "$INPUT_IMAGE_TAG" ]]; then
+            IMAGE_TAG="$INPUT_IMAGE_TAG"
+          else
+            IMAGE_TAG="${GITHUB_SHA:0:12}"
+          fi
+          IMAGE_URI="$GAR_LOCATION-docker.pkg.dev/$GCP_PROJECT_ID/$GAR_REPOSITORY/$IMAGE_NAME:$IMAGE_TAG"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+
+      - name: Build container image
+        run: |
+          docker build \
+            --file workflow/Dockerfile \
+            --tag "$IMAGE_URI" \
+            workflow
+
+      - name: Push container image
+        run: docker push "$IMAGE_URI"
+
+      - name: Summary
+        run: |
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: `${{ steps.metadata.outputs.image_uri }}`" >> "$GITHUB_STEP_SUMMARY"
