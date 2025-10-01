@@ -3,7 +3,7 @@ name: Deploy Docs to GKE
 on:
   push:
     branches:
-      - ga-deployment
+      - ga-deployments
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yaml'
@@ -54,6 +54,10 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Connect tailscale
+        run: |
+            sudo tailscale status -json | jq .BackendState -r
 
       - name: Get GKE credentials
         run: |
