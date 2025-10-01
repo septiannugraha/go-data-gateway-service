@@ -3,13 +3,7 @@ name: Deploy Docs to GKE
 on:
   push:
     branches:
-           - name: Setup credential
-        run: |
-          gcloud components install gke-gcloud-auth-plugin -q
-          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
-          gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
-
-      - name: Determine image tagployments
+      - ga-deployments
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yaml'
@@ -40,8 +34,8 @@ jobs:
   deploy:
     runs-on: general
     permissions:
-      contents: read
-      id-token: write
+        contents: read
+        id-token: write
     defaults:
       run:
         shell: bash -eo pipefail {0}
@@ -56,17 +50,14 @@ jobs:
           workload_identity_provider: projects/815883525249/locations/global/workloadIdentityPools/github-action/providers/github-action
           service_account: jenkins@luminous-lodge-376415.iam.gserviceaccount.com
 
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Connect tailscale
+        run: |
+            sudo tailscale status -json | jq .BackendState -r
 
       - name: Setup credential
         run: |
-          gcloud components install gke-gcloud-auth-plugin -q
           gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
           gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
-          kubectl get nodes -v=10
 
       - name: Determine image tag
         id: metadata
@@ -82,10 +73,6 @@ jobs:
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
           echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
-
-      - name: Create namespace if not exists
-        run: |
-          kubectl get namespace $GKE_NAMESPACE || kubectl create namespace $GKE_NAMESPACE
 
       - name: Update deployment image
         working-directory: docs/deployment
