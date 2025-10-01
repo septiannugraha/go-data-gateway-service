@@ -21,12 +21,17 @@ COPY --chown=node:node docs/ /home/node/workflows-backup/docs/
 
 # Environment variables for production (will be overridden by k8s)
 ENV NODE_ENV=production
+ENV N8N_SECURE_COOKIE=true
+
 ENV N8N_HOST=0.0.0.0
 ENV N8N_PORT=5678
 ENV N8N_PROTOCOL=https
+ENV WEBHOOK_URL=https://n8n.your-domain.com/
+
 ENV GENERIC_TIMEZONE=Asia/Jakarta
 ENV N8N_METRICS=true
 ENV N8N_LOG_LEVEL=info
+ENV N8N_LOG_FILE_LOCATION=/home/node/.n8n/logs/
 ENV N8N_LOG_OUTPUT=console
 ENV EXECUTIONS_PROCESS=main
 ENV EXECUTIONS_DATA_SAVE_ON_ERROR=all
