@@ -3,13 +3,7 @@ name: Deploy Docs to GKE
 on:
   push:
     branches:
-           - name: Setup credential
-        run: |
-          gcloud components install gke-gcloud-auth-plugin -q
-          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
-          gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
-
-      - name: Determine image tagployments
+      - ga-deployments
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yaml'
@@ -63,7 +57,6 @@ jobs:
 
       - name: Setup credential
         run: |
-          gcloud components install gke-gcloud-auth-plugin -q
           gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
           gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
           kubectl get nodes -v=10
