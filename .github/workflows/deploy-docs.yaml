@@ -55,20 +55,11 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Connect tailscale
+      - name: Setup credential
         run: |
-            sudo tailscale status -json | jq .BackendState -r
-
-      - name: Get GKE credentials
-        run: |
-          gcloud container clusters get-credentials $GKE_CLUSTER \
-            --region=$GKE_LOCATION \
-            --project=$GCP_PROJECT_ID
-
-      - name: Verify cluster connection
-        run: |
-          kubectl cluster-info
-          kubectl get nodes
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
+          gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
+          kubectl get ns
 
       - name: Determine image tag
         id: metadata
