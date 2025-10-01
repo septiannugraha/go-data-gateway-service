@@ -57,9 +57,10 @@ jobs:
 
       - name: Setup credential
         run: |
+          gcloud components install gke-gcloud-auth-plugin -q
           gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
           gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
-          kubectl get ns
+          kubectl get nodes -v=10
 
       - name: Determine image tag
         id: metadata
