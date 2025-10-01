@@ -1,12 +1,12 @@
 name: Deploy Inaproc API Gateway to GKE
 
 on:
-  push:
-    branches:
-      - ga-deployments
-    paths:
-      - 'inaproc-api-gateway/**'
-      - '.github/workflows/deploy-inaproc-api-gateway.yaml'
+  #push:
+  #  branches:
+  #    - ga-deployments
+  #  paths:
+  #    - 'inaproc-api-gateway/**'
+  #    - '.github/workflows/deploy-inaproc-api-gateway.yaml'
   workflow_dispatch:
     inputs:
       image_tag:
