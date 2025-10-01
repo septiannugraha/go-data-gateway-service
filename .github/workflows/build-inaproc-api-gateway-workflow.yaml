@@ -1,18 +1,6 @@
 name: Build Inaproc API Gateway Workflow
 
 on:
-  push:
-    branches:
-      - ga-docs
-    paths:
-      - 'workflow/**'
-      - '.github/workflows/build-inaproc-api-gateway-workflow.yaml'
-  pull_request:
-    branches:
-      - ga-docs
-    paths:
-      - 'workflow/**'
-      - '.github/workflows/build-inaproc-api-gateway-workflow.yaml'
   workflow_dispatch:
     inputs:
       image_tag:

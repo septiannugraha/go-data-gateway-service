@@ -1,18 +1,6 @@
 name: Build Data Gateway Service
 
 on:
-  push:
-    branches:
-      - ga-docs
-    paths:
-      - 'data-gateway-service/**'
-      - '.github/workflows/build-data-gateway-service.yaml'
-  pull_request:
-    branches:
-      - ga-docs
-    paths:
-      - 'data-gateway-service/**'
-      - '.github/workflows/build-data-gateway-service.yaml'
   workflow_dispatch:
     inputs:
       image_tag:

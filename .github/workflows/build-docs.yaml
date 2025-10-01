@@ -1,18 +1,6 @@
 name: Build Docs Portal Image
 
 on:
-  push:
-    branches:
-      - ga-docs
-    paths:
-      - 'docs/**'
-      - '.github/workflows/build-docs.yaml'
-  pull_request:
-    branches:
-      - ga-docs
-    paths:
-      - 'docs/**'
-      - '.github/workflows/build-docs.yaml'
   workflow_dispatch:
     inputs:
       image_tag:
