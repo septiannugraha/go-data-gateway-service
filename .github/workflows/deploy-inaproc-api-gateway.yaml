@@ -1,0 +1,127 @@
+name: Deploy Inaproc API Gateway to GKE
+
+on:
+  #push:
+  #  branches:
+  #    - ga-deployments
+  #  paths:
+  #    - 'inaproc-api-gateway/**'
+  #    - '.github/workflows/deploy-inaproc-api-gateway.yaml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (defaults to latest)'
+        required: false
+        default: 'latest'
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+        - prod
+        - staging
+
+env:
+  GCP_PROJECT_ID: gtp-apigateway-prod
+  GKE_CLUSTER: default
+  GKE_LOCATION: asia-southeast2
+  GKE_NAMESPACE: prod
+  DEPLOYMENT_NAME: inaproc-api-gateway
+  IMAGE_REPOSITORY: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-api-gateway
+
+jobs:
+  deploy:
+    runs-on: general
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Exchange github oidc token
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: projects/815883525249/locations/global/workloadIdentityPools/github-action/providers/github-action
+          service_account: jenkins@luminous-lodge-376415.iam.gserviceaccount.com
+
+      - name: Connect tailscale
+        run: |
+            sudo tailscale status -json | jq .BackendState -r
+
+      - name: Setup credential
+        run: |
+          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
+          gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_LOCATION --project $GCP_PROJECT_ID -q
+
+      - name: Determine image tag
+        id: metadata
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+        run: |
+          if [[ -n "$INPUT_IMAGE_TAG" && "$INPUT_IMAGE_TAG" != "latest" ]]; then
+            IMAGE_TAG="$INPUT_IMAGE_TAG"
+          else
+            IMAGE_TAG="latest"
+          fi
+          IMAGE_URI="$IMAGE_REPOSITORY:$IMAGE_TAG"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
+
+      - name: Update deployment image
+        working-directory: inaproc-api-gateway/deployment
+        run: |
+          # Update the image tag in kustomization.yaml
+          sed -i "s|newTag: .*|newTag: ${{ steps.metadata.outputs.image_tag }}|g" kustomization.yaml
+          
+          # Verify the change
+          echo "Updated kustomization.yaml:"
+          cat kustomization.yaml
+
+      - name: Deploy to GKE
+        working-directory: inaproc-api-gateway/deployment
+        run: |
+          # Apply the manifests using kustomize
+          kubectl apply -k .
+          
+          # Wait for deployment to be ready
+          kubectl rollout status deployment/$DEPLOYMENT_NAME -n $GKE_NAMESPACE --timeout=600s
+
+      - name: Verify deployment
+        run: |
+          # Check deployment status
+          kubectl get deployment $DEPLOYMENT_NAME -n $GKE_NAMESPACE
+          kubectl get pods -l app=inaproc-api-gateway -n $GKE_NAMESPACE
+          kubectl get service inaproc-api-gateway-service -n $GKE_NAMESPACE
+          kubectl get ingress inaproc-api-gateway-ingress -n $GKE_NAMESPACE || echo "Ingress not ready yet"
+          kubectl get externalsecrets -n $GKE_NAMESPACE || echo "External secrets not ready yet"
+
+      - name: Get service endpoints
+        run: |
+          echo "## Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment**: ${{ github.event.inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image**: \`${{ steps.metadata.outputs.image_uri }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Namespace**: \`$GKE_NAMESPACE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Deployment**: \`$DEPLOYMENT_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Get ingress details if available
+          INGRESS_IP=$(kubectl get ingress inaproc-api-gateway-ingress -n $GKE_NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "Pending")
+          echo "- **Ingress IP**: \`$INGRESS_IP\`" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Instructions for port forwarding
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Access the application:" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Port Forward** (for immediate access):" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
+          echo "kubectl port-forward service/inaproc-api-gateway-service 8081:80 -n $GKE_NAMESPACE" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Then access: http://localhost:8081" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Production URL**: https://api.inaproc-apigateway.com" >> "$GITHUB_STEP_SUMMARY"

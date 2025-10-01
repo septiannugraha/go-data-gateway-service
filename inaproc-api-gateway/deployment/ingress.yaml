@@ -1,0 +1,37 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: inaproc-api-gateway-ssl-cert
+  namespace: prod
+spec:
+  domains:
+  - api.inaproc-apigateway.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inaproc-api-gateway-ingress
+  namespace: prod
+  labels:
+    app: inaproc-api-gateway
+    app.kubernetes.io/name: inaproc-api-gateway
+    app.kubernetes.io/part-of: inaproc-apigateway
+    component: api-gateway
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/managed-certificates: "inaproc-api-gateway-ssl-cert"
+    kubernetes.io/ingress.global-static-ip-name: "inaproc-api-gateway-ip"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: api.inaproc-apigateway.com
+    http:
+      paths:
+      - path: /*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: inaproc-api-gateway-service
+            port:
+              number: 80
