@@ -1,4 +1,4 @@
-name: Build Docs Portal Image
+name: Build Inaproc API Gateway Workflow
 
 on:
   workflow_dispatch:
@@ -11,12 +11,12 @@ env:
   GCP_PROJECT_ID: luminous-lodge-376415
   GAR_LOCATION: asia-southeast2
   GAR_REPOSITORY: jenkins
-  IMAGE_NAME: inaproc-apigateway-docs
+  IMAGE_NAME: inaproc-api-gateway-workflow
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
-  GKE_NAMESPACE: docs
-  DEPLOYMENT_NAME: inaproc-docs
-  CONTAINER_NAME: docs
+  GKE_NAMESPACE: inaproc
+  DEPLOYMENT_NAME: inaproc-api-gateway
+  CONTAINER_NAME: inaproc-api-gateway
 
 jobs:
   build:
@@ -32,33 +32,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: docs/node_modules
-          key: ${{ runner.os }}-docs-node-${{ hashFiles('docs/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-node-
-
-      - name: Install dependencies
-        working-directory: docs
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-        run: npm install
-
-      - name: Verify build requirements
-        working-directory: docs
-        run: |
-          echo "Checking required files for Docker build..."
-          ls -la inaproc-api.yaml
-          ls -la source.config.ts next.config.mjs tsconfig.json
-          echo "All required files present ✅"
-
       - name: Exchange github oidc token
         uses: google-github-actions/auth@v1
         with:
@@ -67,10 +40,12 @@ jobs:
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Setup credential
+      - name: Configure Artifact Registry authentication
         run: |
-          gcloud auth configure-docker asia-southeast2-docker.pkg.dev -q
+          gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev -q
 
       - name: Determine image tag
         id: metadata
@@ -88,13 +63,16 @@ jobs:
           echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
 
       - name: Build container image
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
         run: |
           docker build \
-            --file ./docs/Dockerfile \
+            --file workflow/Dockerfile \
             --tag "$IMAGE_URI" \
-            ./docs
+            workflow
 
       - name: Push container image
         run: docker push "$IMAGE_URI"
+
+      - name: Summary
+        run: |
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: `${{ steps.metadata.outputs.image_uri }}`" >> "$GITHUB_STEP_SUMMARY"

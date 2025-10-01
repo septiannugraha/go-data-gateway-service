@@ -29,8 +29,6 @@ desktop.ini
 .env.local
 .env.*.local
 .env.docker
-!.env.example
-!.env.docker.example
 
 # Security and credentials
 credentials/
@@ -48,7 +46,6 @@ log/
 
 # Cache and temporary files
 .cache/
-cache/
 *.tmp
 *.temp
 *.backup
@@ -132,8 +129,7 @@ inaproc-api-gateway/var/
 inaproc-api-gateway/log/
 inaproc-api-gateway/tmp/
 
-# Fusio configuration files
-inaproc-api-gateway/.env
+# Fusio configuration files (allow .env for container builds)
 !inaproc-api-gateway/.env.example
 
 # Fusio generated files
@@ -196,7 +192,6 @@ docs/yarn-error.log*
 # =============================================================================
 
 # Docker overrides and data
-docker-compose.override.yml
 docker-data/
 data/
 
@@ -215,7 +210,7 @@ migrations/*.sql
 # =============================================================================
 
 # API specifications (auto-generated)
-inaproc-api.yaml
+# inaproc-api.yaml - commented out as needed for docs generation
 openapi.yaml
 swagger.yaml
 api-spec.json
@@ -234,24 +229,9 @@ coverage/
 # LEGACY FILES (from previous structure)
 # =============================================================================
 
-# Legacy Go files (now moved to data-gateway-service/)
-/go-data-gateway
-/bin/
-/dist/
-/tmp/
-server-chi
-test-server
-go-data-gateway-chi
-bigquery/
-prometheus.yml
-
 # Legacy config files
 .air.toml
 API_TEST_COMMANDS.md
-Dockerfile
-Dockerfile.dev
-docker-start.sh
-start.sh
 
 # Legacy directories
 /talks/
@@ -363,3 +343,21 @@ workflow/test-*.js
 # Windows metadata files
 *.json:Zone.Identifier
 *:Zone.Identifier
+
+# =============================================================================
+# N8N MASTERY BOOK - LaTeX documentation (exclude from commits)
+# =============================================================================
+
+# LaTeX generated files
+workflow/*.tex
+workflow/*.pdf
+workflow/*.aux
+workflow/*.toc
+workflow/*.out
+workflow/*.log
+workflow/*.idx
+workflow/*.glo
+workflow/*.ist
+
+# Source Markdown (internal documentation)
+workflow/N8N_MASTERY_BOOK.md
