@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inaproc-api-gateway
+  namespace: prod
+  labels:
+    app: inaproc-api-gateway
+    app.kubernetes.io/name: inaproc-api-gateway
+    app.kubernetes.io/part-of: inaproc-apigateway
+    component: api-gateway
+    environment: production
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: inaproc-api-gateway
+  template:
+    metadata:
+      labels:
+        app: inaproc-api-gateway
+        app.kubernetes.io/name: inaproc-api-gateway
+        app.kubernetes.io/part-of: inaproc-apigateway
+        component: api-gateway
+        environment: production
+    spec:
+      containers:
+      - name: inaproc-api-gateway
+        image: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-api-gateway:latest
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        env:
+        - name: APP_PROJECT_KEY
+          value: "cee262a5a1bdd205cbfe0dfc2ad4eddf"
+        - name: APP_ENV
+          value: "prod"
+        - name: APP_DEBUG
+          value: "false"
+        - name: APP_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: gateway-postgres-uri
+              key: GATEWAY_POSTGRES_URI
+        - name: APP_MAILER
+          value: "native://default"
+        - name: APP_MESSENGER
+          value: "doctrine://default"
+        - name: APP_URL
+          value: "https://api.inaproc-apigateway.com"
+        - name: APP_APPS_URL
+          value: "https://api.inaproc-apigateway.com/apps"
+        - name: APP_MAIL_SENDER
+          value: ""
+        - name: APP_TRUSTED_IP_HEADER
+          value: ""
+        - name: APP_TENANT_ID
+          value: ""
+        - name: SDKGEN_CLIENT_ID
+          value: ""
+        - name: SDKGEN_CLIENT_SECRET
+          value: ""
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "300m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 33 # www-data user
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+        volumeMounts:
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: var-log-volume
+          mountPath: /var/log
+      volumes:
+      - name: tmp-volume
+        emptyDir: {}
+      - name: var-log-volume
+        emptyDir: {}
+      securityContext:
+        fsGroup: 33 # www-data group

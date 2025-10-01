@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: inaproc-api-gateway-service
+  namespace: prod
+  labels:
+    app: inaproc-api-gateway
+    app.kubernetes.io/name: inaproc-api-gateway
+    app.kubernetes.io/part-of: inaproc-apigateway
+    component: api-gateway
+    environment: production
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: inaproc-api-gateway
