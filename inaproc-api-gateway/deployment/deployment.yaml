@@ -5,18 +5,10 @@ metadata:
   namespace: prod
   labels:
     app: inaproc-api-gateway
-    app.kubernetes.io/name: inaproc-api-gateway
-    app.kubernetes.io/part-of: inaproc-apigateway
     component: api-gateway
     environment: production
-    app.kubernetes.io/managed-by: kustomize
 spec:
-  replicas: 3
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
+  replicas: 2
   selector:
     matchLabels:
       app: inaproc-api-gateway
@@ -24,8 +16,6 @@ spec:
     metadata:
       labels:
         app: inaproc-api-gateway
-        app.kubernetes.io/name: inaproc-api-gateway
-        app.kubernetes.io/part-of: inaproc-apigateway
         component: api-gateway
         environment: production
     spec:
@@ -35,47 +25,45 @@ spec:
         ports:
         - containerPort: 80
           name: http
-          protocol: TCP
         env:
-        - name: APP_PROJECT_KEY
-          value: "cee262a5a1bdd205cbfe0dfc2ad4eddf"
-        - name: APP_ENV
+        - name: FUSIO_ENV
           value: "prod"
-        - name: APP_DEBUG
+        - name: FUSIO_DEBUG
           value: "false"
-        - name: APP_CONNECTION
+        - name: FUSIO_PROJECT_KEY
+          value: "cee262a5a1bdd205cbfe0dfc2ad4eddf"
+        - name: FUSIO_CONNECTION
           valueFrom:
             secretKeyRef:
-              name: gateway-postgres-uri
+              name: gateway-service-secrets
               key: GATEWAY_POSTGRES_URI
-        - name: APP_MAILER
+        - name: FUSIO_MAILER
           value: "native://default"
-        - name: APP_MESSENGER
+        - name: FUSIO_MESSENGER
           value: "doctrine://default"
-        - name: APP_URL
-          value: "https://api.inaproc-apigateway.com"
-        - name: APP_APPS_URL
-          value: "https://api.inaproc-apigateway.com/apps"
-        - name: APP_MAIL_SENDER
-          value: ""
-        - name: APP_TRUSTED_IP_HEADER
-          value: ""
-        - name: APP_TENANT_ID
-          value: ""
-        - name: SDKGEN_CLIENT_ID
-          value: ""
-        - name: SDKGEN_CLIENT_SECRET
-          value: ""
+        - name: FUSIO_URL
+          value: "https://data.eproc.dev"
+        - name: FUSIO_APPS_URL
+          value: "https://data.eproc.dev/apps"
+        - name: FUSIO_BACKEND_USER
+          value: "admin"
+        - name: FUSIO_BACKEND_EMAIL
+          value: "admin@fusio-project.org"
+        - name: FUSIO_BACKEND_PW
+          valueFrom:
+            secretKeyRef:
+              name: gateway-service-secrets
+              key: GATEWAY_SERVICE_FUSIO_BACKEND_PW
         resources:
           requests:
             memory: "512Mi"
             cpu: "300m"
           limits:
             memory: "1Gi"
-            cpu: "1000m"
+            cpu: "800m"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /apps/account
             port: 80
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -83,26 +71,9 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health
+            path: /apps/account
             port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 2
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 33 # www-data user
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-        volumeMounts:
-        - name: tmp-volume
-          mountPath: /tmp
-        - name: var-log-volume
-          mountPath: /var/log
-      volumes:
-      - name: tmp-volume
-        emptyDir: {}
-      - name: var-log-volume
-        emptyDir: {}
-      securityContext:
-        fsGroup: 33 # www-data group
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

@@ -1,9 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-metadata:
-  name: inaproc-api-gateway-deployment
-
 resources:
 - namespace.yaml
 - external-secrets.yaml
@@ -11,11 +8,14 @@ resources:
 - service.yaml
 - ingress.yaml
 
+namespace: prod
+
+commonLabels:
+  app.kubernetes.io/name: inaproc-api-gateway
+  app.kubernetes.io/part-of: inaproc-apigateway
+
 images:
 - name: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-api-gateway
   newTag: latest
-
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
 
 namespace: prod
