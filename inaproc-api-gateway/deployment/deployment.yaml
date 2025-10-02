@@ -3,12 +3,8 @@ kind: Deployment
 metadata:
   name: inaproc-api-gateway
   namespace: prod
-  labels:
-    app: inaproc-api-gateway
-    component: api-gateway
-    environment: production
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: inaproc-api-gateway
@@ -50,10 +46,7 @@ spec:
         - name: FUSIO_BACKEND_EMAIL
           value: "admin@fusio-project.org"
         - name: FUSIO_BACKEND_PW
-          valueFrom:
-            secretKeyRef:
-              name: gateway-service-secrets
-              key: GATEWAY_SERVICE_FUSIO_BACKEND_PW
+          value: "secure-admin-password"
         resources:
           requests:
             memory: "512Mi"
