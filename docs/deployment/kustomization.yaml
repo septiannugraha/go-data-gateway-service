@@ -12,7 +12,6 @@ namespace: prod
 commonLabels:
   app.kubernetes.io/name: docs
   app.kubernetes.io/part-of: inaproc-apigateway
-  app.kubernetes.io/managed-by: kustomize
 
 images:
 - name: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-apigateway-docs

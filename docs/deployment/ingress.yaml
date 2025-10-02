@@ -1,35 +1,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: docs-ingress
+  name: inaproc-api-gateway-docs
   namespace: prod
   annotations:
-    kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: "docs-ip"
-    networking.gke.io/managed-certificates: "docs-ssl-cert"
-    kubernetes.io/ingress.allow-http: "false"
+    kubernetes.io/ingress.class: "nginx"
   labels:
     app: docs
     component: documentation
 spec:
+  ingressClassName: nginx
   rules:
-  - host: docs.inaproc-apigateway.com
+  - host: data.eproc.dev
     http:
       paths:
-      - path: /*
-        pathType: ImplementationSpecific
+      - path: /api
+        pathType: Prefix
         backend:
           service:
-            name: docs-service
+            name: inaproc-api-gateway-docs
             port:
-              number: 80
+              number: 3000
 
----
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: docs-ssl-cert
-  namespace: prod
-spec:
-  domains:
-    - docs.inaproc-apigateway.com

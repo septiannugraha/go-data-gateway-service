@@ -1,17 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: docs-service
+  name: inaproc-api-gateway-docs
   namespace: prod
-  labels:
-    app: docs
-    component: documentation
 spec:
   selector:
-    app: docs
+    app: inaproc-api-gateway-docs
   ports:
-  - name: http
-    port: 80
-    targetPort: 3000
-    protocol: TCP
-  type: ClusterIP
+  - name: inaproc-api-gateway-docs
+    port: 3000
