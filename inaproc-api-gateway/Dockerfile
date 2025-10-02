@@ -1,99 +1,138 @@
-# syntax=docker/dockerfile:1
+# Apache-based Dockerfile for Fusio
+# Based on official fusio-docker implementation
+FROM php:8.3-apache
 
-# Simple PHP-FPM + Nginx approach
-FROM php:8.2-fpm
+LABEL maintainer="Generated for LKPP Deployment"
+LABEL version="1.0.0"
+LABEL description="Fusio API Gateway - Apache Version"
 
-# Install required system dependencies and PHP extensions
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      nginx \
-      supervisor \
-      git \
-      unzip \
-      curl \
-      libicu-dev \
-      libpq-dev \
-      libzip-dev \
-      libpng-dev \
-      libxml2-dev \
-      libmariadb-dev && \
-    docker-php-ext-configure intl && \
-    docker-php-ext-install -j"$(nproc)" \
-      intl \
-      opcache \
-      pdo \
-      pdo_mysql \
-      pdo_pgsql \
-      pgsql \
-      zip \
-      soap \
-      sockets && \
-    pecl install redis && \
-    docker-php-ext-enable redis && \
-    rm -rf /var/lib/apt/lists/*
+# Environment variables
+ENV FUSIO_PROJECT_KEY="cee262a5a1bdd205cbfe0dfc2ad4eddf"
+ENV FUSIO_ENV="prod"
+ENV FUSIO_DEBUG="false"
+ENV FUSIO_CONNECTION="pdo-pgsql://airbyte:airbyte@host.docker.internal:5434/fusio"
+ENV FUSIO_BACKEND_USER="admin"
+ENV FUSIO_BACKEND_EMAIL="admin@fusio-project.org"
+ENV FUSIO_BACKEND_PW="fusio123"
+ENV FUSIO_MAILER="native://default"
+ENV FUSIO_MESSENGER="doctrine://default"
+ENV FUSIO_URL="http://localhost"
+ENV FUSIO_APPS_URL="http://localhost/apps"
 
-# Copy pre-built application (including vendor/)
-COPY . /var/www/html
+# Install system packages and PHP extensions
+RUN apt-get update && apt-get -y install \
+    wget \
+    git \
+    unzip \
+    cron \
+    sudo \
+    supervisor \
+    default-mysql-client \
+    libpq-dev \
+    libxml2-dev \
+    libcurl3-dev \
+    libzip-dev \
+    libonig-dev \
+    libpng-dev \
+    libmemcached-dev \
+    openssl \
+    libssl-dev \
+    libicu-dev \
+    libcurl4-openssl-dev
 
-# Configure nginx
-COPY <<EOF /etc/nginx/sites-available/default
-server {
-    listen 8080;
-    server_name _;
-    root /var/www/html/public;
-    index index.php;
+# Install PHP extensions
+RUN docker-php-ext-install \
+    pgsql \
+    mysqli \
+    pdo \
+    pdo_mysql \
+    pdo_pgsql \
+    simplexml \
+    dom \
+    bcmath \
+    curl \
+    zip \
+    mbstring \
+    opcache \
+    intl \
+    xml \
+    gd \
+    soap \
+    sockets
 
-    location / {
-        try_files \$uri /index.php\$is_args\$args;
-    }
+# Install PECL extensions
+RUN pecl install memcached && docker-php-ext-enable memcached
+RUN pecl install apcu && docker-php-ext-enable apcu
 
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-EOF
+# Install Composer
+ENV COMPOSER_VERSION="2.8.2"
+RUN wget -O /usr/bin/composer "https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar"
+RUN chmod +x /usr/bin/composer
 
-# Configure supervisor to run both nginx and php-fpm
-COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
+# Copy and install Fusio application
+WORKDIR /var/www/html/fusio
+COPY . .
+RUN /usr/bin/composer install --no-dev --optimize-autoloader --classmap-authoritative
+RUN /usr/bin/composer dump-autoload --no-dev --optimize --classmap-authoritative
+RUN chmod +x /var/www/html/fusio/bin/fusio
 
-[program:php-fpm]
-command=php-fpm
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/php-fpm.log
-stderr_logfile=/var/log/php-fpm.log
+# Apache configuration
+RUN rm /etc/apache2/sites-available/*.conf
+RUN rm /etc/apache2/sites-enabled/*.conf
 
-[program:nginx]
-command=nginx -g "daemon off;"
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/nginx.log
-stderr_logfile=/var/log/nginx.log
-EOF
+# Create Apache configuration
+RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/fusio.conf && \
+    echo '    ServerName localhost' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '    DocumentRoot /var/www/html/fusio/public' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '    <Directory /var/www/html/fusio/public>' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        Options FollowSymLinks' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        AllowOverride All' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        Require all granted' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteEngine On' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteBase /' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteCond %{REQUEST_FILENAME} !-f' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteCond %{REQUEST_FILENAME} !-d' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteRule (.*) /index.php/$1 [L]' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteCond %{HTTP:Authorization} ^(.*)' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '        RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '    </Directory>' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '    ErrorLog ${APACHE_LOG_DIR}/fusio.error.log' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '    CustomLog ${APACHE_LOG_DIR}/fusio.access.log combined' >> /etc/apache2/sites-available/fusio.conf && \
+    echo '</VirtualHost>' >> /etc/apache2/sites-available/fusio.conf
 
-# Configure PHP-FPM to listen on 127.0.0.1:9000
-RUN sed -i 's/listen = \/run\/php\/php8.2-fpm.sock/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
+RUN a2enmod rewrite
+RUN a2ensite fusio
 
-# Ensure correct ownership for runtime writes (cache, logs, etc.)
-RUN chown -R www-data:www-data /var/www/html && \
-    find /var/www/html -type d -exec chmod 755 {} \; && \
-    find /var/www/html -type f -exec chmod 644 {} \;
+# PHP configuration
+RUN mv "${PHP_INI_DIR}/php.ini-production" "${PHP_INI_DIR}/php.ini"
 
-# Surface environment variables commonly configured via Kubernetes secrets/configmaps
-ENV FUSIO_ENV=prod \
-    PHP_MEMORY_LIMIT=512M \
-    PHP_MAX_EXECUTION_TIME=60
+# Create PHP configuration for Fusio
+RUN echo 'memory_limit = 512M' > "${PHP_INI_DIR}/conf.d/fusio.ini" && \
+    echo 'post_max_size = 96M' >> "${PHP_INI_DIR}/conf.d/fusio.ini" && \
+    echo 'upload_max_filesize = 64M' >> "${PHP_INI_DIR}/conf.d/fusio.ini" && \
+    echo 'date.timezone = UTC' >> "${PHP_INI_DIR}/conf.d/fusio.ini" && \
+    echo 'pdo_mysql.default_socket = /var/run/mysqld/mysqld.sock' >> "${PHP_INI_DIR}/conf.d/fusio.ini"
 
-# Basic healthcheck hitting the published root path
-HEALTHCHECK --interval=30s --timeout=5s --retries=5 \
-  CMD curl -fsS "http://127.0.0.1:8080/" || exit 1
+# Clean up installation file for security
+RUN rm -f /var/www/html/fusio/public/install.php
 
-EXPOSE 8080
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html/fusio
+RUN chmod -R 755 /var/www/html/fusio
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Create cron jobs
+RUN echo "" > /etc/cron.d/fusio
+RUN echo "* * * * * www-data cd /var/www/html/fusio && php bin/fusio cronjob" >> /etc/cron.d/fusio
+RUN echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:log_rotate" >> /etc/cron.d/fusio
+RUN echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:clean" >> /etc/cron.d/fusio
+RUN chmod 0644 /etc/cron.d/fusio
+
+# Copy entrypoint script
+COPY apache-docker-entrypoint.sh /apache-docker-entrypoint.sh
+RUN chmod +x /apache-docker-entrypoint.sh
+
+# Expose port 80
+EXPOSE 80
+
+# Set entrypoint
+ENTRYPOINT ["/apache-docker-entrypoint.sh"]

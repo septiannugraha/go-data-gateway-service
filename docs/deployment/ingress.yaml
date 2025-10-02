@@ -6,7 +6,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "nginx"
   labels:
-    app: docs
+    app: inaproc-api-gateway-docs
     component: documentation
 spec:
   ingressClassName: nginx
