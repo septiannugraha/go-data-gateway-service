@@ -14,9 +14,9 @@ env:
   IMAGE_NAME: inaproc-data-gateway-service
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
-  GKE_NAMESPACE: data-gateway
-  DEPLOYMENT_NAME: data-gateway-service
-  CONTAINER_NAME: data-gateway-service
+  GKE_NAMESPACE: prod
+  DEPLOYMENT_NAME: inaproc-data-gateway-service
+  CONTAINER_NAME: inaproc-data-gateway-service
 
 jobs:
   build:
