@@ -2,7 +2,7 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
-const defaultBasePath = '/api-docs';
+const defaultBasePath = '/api';
 const normalizedBasePath = (() => {
   const value = process.env.NEXT_PUBLIC_BASE_PATH ?? defaultBasePath;
   if (value === '' || value === '/') {
