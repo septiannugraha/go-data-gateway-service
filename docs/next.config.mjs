@@ -21,19 +21,7 @@ const config = {
   reactStrictMode: true,
   basePath: normalizedBasePath,
   assetPrefix,
-  async redirects() {
-    if (!normalizedBasePath) {
-      return [];
-    }
-
-    return [
-      {
-        source: '/',
-        destination: normalizedBasePath,
-        permanent: false,
-      },
-    ];
-  },
+  // Removed redirects - basePath handles routing automatically
   // Re-enable image optimization for SSR
 };
 
