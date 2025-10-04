@@ -28,6 +28,10 @@ spec:
         env:
         - name: NODE_ENV
           value: "production"
+        - name: NEXT_PUBLIC_BASE_PATH
+          value: "/api"
+        - name: NEXT_PUBLIC_ASSET_PREFIX
+          value: "/api"
         - name: NEXT_TELEMETRY_DISABLED
           value: "1"
         resources:
@@ -39,7 +43,7 @@ spec:
             cpu: "500m"
         livenessProbe:
           httpGet:
-            path: /api-docs
+            path: /api
             port: 3000
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -47,7 +51,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /api-docs
+            path: /api
             port: 3000
           initialDelaySeconds: 10
           periodSeconds: 5

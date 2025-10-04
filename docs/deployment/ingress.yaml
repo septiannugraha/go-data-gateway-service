@@ -14,7 +14,7 @@ spec:
   - host: data.eproc.dev
     http:
       paths:
-      - path: /api-docs
+      - path: /api
         pathType: Prefix
         backend:
           service:
