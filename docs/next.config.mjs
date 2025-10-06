@@ -22,7 +22,10 @@ const config = {
   basePath: normalizedBasePath,
   assetPrefix,
   // Removed redirects - basePath handles routing automatically
-  // Re-enable image optimization for SSR
+  // Disable image optimization to prevent issues in containerized environment
+  images: {
+    unoptimized: true
+  }
 };
 
 export default withMDX(config);
