@@ -2,18 +2,9 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
-const defaultBasePath = '/api';
-const normalizedBasePath = (() => {
-  const value = process.env.NEXT_PUBLIC_BASE_PATH ?? defaultBasePath;
-  if (value === '' || value === '/') {
-    return '';
-  }
-
-  return value.startsWith('/') ? value.replace(/\/$/, '') : `/${value.replace(/\/$/, '')}`;
-})();
-
-const assetPrefix = process.env.NEXT_PUBLIC_ASSET_PREFIX
-  ?? (normalizedBasePath ? normalizedBasePath : undefined);
+// No basePath needed - NGINX ingress will strip /api prefix
+const normalizedBasePath = '';
+const assetPrefix = undefined;
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -22,7 +13,10 @@ const config = {
   basePath: normalizedBasePath,
   assetPrefix,
   // Removed redirects - basePath handles routing automatically
-  // Re-enable image optimization for SSR
+  // Disable image optimization to prevent 500 errors in containerized environment
+  images: {
+    unoptimized: true
+  },
 };
 
 export default withMDX(config);
