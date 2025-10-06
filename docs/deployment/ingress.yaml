@@ -1,4 +1,3 @@
-# Ingress for /api paths - strips /api prefix
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,7 +5,9 @@ metadata:
   namespace: prod
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  labels:
+    app: inaproc-api-gateway-docs
+    component: documentation
 spec:
   ingressClassName: nginx
   rules:
@@ -20,40 +21,4 @@ spec:
             name: inaproc-api-gateway-docs
             port:
               number: 3000
-
----
-# Ingress for static assets - no rewriting
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: inaproc-api-gateway-docs-assets
-  namespace: prod
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: data.eproc.dev
-    http:
-      paths:
-      - path: /_next
-        pathType: Prefix
-        backend:
-          service:
-            name: inaproc-api-gateway-docs
-            port:
-              number: 3000
-      - path: /img
-        pathType: Prefix
-        backend:
-          service:
-            name: inaproc-api-gateway-docs
-            port:
-              number: 3000
-      - path: /favicon.ico
-        pathType: Exact
-        backend:
-          service:
-            name: inaproc-api-gateway-docs
-            port:
-              number: 3000
+      
