@@ -42,6 +42,10 @@ spec:
           value: "https://data.eproc.dev"
         - name: APP_APPS_URL
           value: "https://data.eproc.dev/apps"
+        - name: FUSIO_URL
+          value: "https://data.eproc.dev"
+        - name: FUSIO_APPS_URL
+          value: "https://data.eproc.dev/apps"
         - name: FUSIO_BACKEND_USER
           value: "admin"
         - name: FUSIO_BACKEND_EMAIL
