@@ -23,9 +23,6 @@ const config = {
   assetPrefix,
   // Removed redirects - basePath handles routing automatically
   // Disable image optimization to prevent issues in containerized environment
-  images: {
-    unoptimized: true
-  }
 };
 
 export default withMDX(config);
