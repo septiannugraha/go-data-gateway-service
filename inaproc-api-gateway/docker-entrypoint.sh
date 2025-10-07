@@ -29,6 +29,55 @@ wait_for_db() {
 
 echo "Starting Fusio Apache initialization..."
 
+# Update .env file with environment variables from deployment dynamically
+echo "Updating .env file with deployment environment variables..."
+ENV_FILE="/var/www/html/fusio/.env"
+
+if [ -f "$ENV_FILE" ]; then
+    echo "Reading .env file and updating with container environment variables..."
+    
+    # Create a temporary file for the updated .env
+    temp_env="/tmp/.env.tmp"
+    cp "$ENV_FILE" "$temp_env"
+    
+    # Read each line from .env file
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip empty lines and comments (lines starting with #)
+        if [ -z "$line" ] || echo "$line" | grep -q '^[[:space:]]*#'; then
+            continue
+        fi
+        
+        # Extract variable name (everything before the first =)
+        var_name=$(echo "$line" | cut -d'=' -f1 | tr -d '[:space:]')
+        
+        # Skip if no variable name found
+        if [ -z "$var_name" ]; then
+            continue
+        fi
+        
+        # Check if this variable exists in container environment
+        env_value=$(printenv "$var_name")
+        
+        if [ -n "$env_value" ]; then
+            echo "  Updating $var_name with container environment value"
+            # Replace the line in temp file
+            sed -i "s|^[[:space:]]*$var_name=.*|$var_name=\"$env_value\"|" "$temp_env"
+        else
+            echo "  Container environment variable $var_name not found, keeping default value"
+        fi
+        
+    done < "$ENV_FILE"
+    
+    # Replace original .env with updated version
+    mv "$temp_env" "$ENV_FILE"
+    
+else
+    echo "Warning: .env file not found at $ENV_FILE"
+fi
+
+echo "Updated .env file contents:"
+cat "$ENV_FILE"
+
 # Set environment variables from local env if they exist
 if [ -f "/var/www/html/fusio/.env.local" ]; then
     echo "Loading .env.local configuration..."

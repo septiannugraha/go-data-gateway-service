@@ -18,6 +18,7 @@ spec:
       containers:
       - name: inaproc-api-gateway
         image: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-api-gateway:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: http

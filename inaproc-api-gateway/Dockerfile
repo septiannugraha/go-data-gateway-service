@@ -78,7 +78,6 @@ COPY vendor-deps.tar.gz /tmp/vendor-deps.tar.gz
 COPY . .
 RUN mkdir -p /var/www/html/fusio/vendor \
     && tar -xzf /tmp/vendor-deps.tar.gz -C /var/www/html/fusio/vendor \
-    && rm -f .env \
     && rm /tmp/vendor-deps.tar.gz
 
 # Install Composer (needed for autoload generation)
