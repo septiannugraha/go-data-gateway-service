@@ -126,8 +126,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Replace environment variables in apps
-# echo "Updating app configurations..."
-# php bin/fusio marketplace:env -
+echo "Updating app configurations..."
+php bin/fusio marketplace:env -
 
 # Install backend apps if they don't exist
 if [ ! -d "/var/www/html/fusio/public/apps/fusio" ]; then
