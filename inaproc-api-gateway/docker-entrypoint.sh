@@ -78,13 +78,8 @@ fi
 echo "Updated .env file contents:"
 cat "$ENV_FILE"
 
-# Set environment variables from local env if they exist
-if [ -f "/var/www/html/fusio/.env.local" ]; then
-    echo "Loading .env.local configuration..."
-    export $(grep -v '^#' /var/www/html/fusio/.env.local | xargs)
-fi
-
-# Override environment variables for consistency
+# Map APP_* environment variables to FUSIO_* (container env takes precedence)
+# This ensures Kubernetes/Docker environment variables override .env file
 export FUSIO_PROJECT_KEY="${APP_PROJECT_KEY:-$FUSIO_PROJECT_KEY}"
 export FUSIO_ENV="${APP_ENV:-$FUSIO_ENV}"
 export FUSIO_DEBUG="${APP_DEBUG:-$FUSIO_DEBUG}"
@@ -94,7 +89,7 @@ export FUSIO_MESSENGER="${APP_MESSENGER:-$FUSIO_MESSENGER}"
 export FUSIO_URL="${APP_URL:-$FUSIO_URL}"
 export FUSIO_APPS_URL="${APP_APPS_URL:-$FUSIO_APPS_URL}"
 
-echo "Configuration:"
+echo "Configuration (from container environment):"
 echo "  PROJECT_KEY: $FUSIO_PROJECT_KEY"
 echo "  ENV: $FUSIO_ENV"
 echo "  DEBUG: $FUSIO_DEBUG"
@@ -104,6 +99,11 @@ echo "  APPS_URL: $FUSIO_APPS_URL"
 
 # Wait for database to be available
 wait_for_db
+
+# Clear cache to avoid any stale container.php issues
+echo "Clearing Fusio cache..."
+rm -rf /var/www/html/fusio/cache/*.php
+echo "✓ Cache cleared"
 
 # Wait for external services (using Fusio's built-in wait command)
 echo "Waiting for external services..."
@@ -129,10 +129,25 @@ fi
 echo "Updating app configurations..."
 php bin/fusio marketplace:env -
 
-# Install backend apps if they don't exist
-if [ ! -d "/var/www/html/fusio/public/apps/fusio" ]; then
-    echo "Installing Fusio backend app..."
-    php bin/fusio marketplace:install fusio || echo "Backend app installation failed, continuing..."
+# Install marketplace apps fresh (excluded from Docker image via .dockerignore)
+echo "Installing Fusio marketplace apps..."
+
+# Install Fusio backend app
+echo "  → Installing Fusio backend app..."
+php bin/fusio marketplace:install fusio || echo "    ⚠️  Backend app installation failed, continuing..."
+
+# Install account app
+echo "  → Installing Fusio account app..."
+php bin/fusio marketplace:install account || echo "    ⚠️  Account app installation failed, continuing..."
+
+echo "✅ Marketplace apps installed successfully"
+
+# Apply LKPP customizations (must run AFTER marketplace installation)
+echo "Applying LKPP customizations..."
+if [ -f "/var/www/html/fusio/scripts/apply-customizations.sh" ]; then
+    bash /var/www/html/fusio/scripts/apply-customizations.sh || echo "⚠️  Customization script failed, continuing..."
+else
+    echo "⚠️  Warning: Customization script not found at /var/www/html/fusio/scripts/apply-customizations.sh"
 fi
 
 # Deploy any pending changes

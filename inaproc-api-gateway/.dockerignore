@@ -1,0 +1,18 @@
+vendor
+vendor-full
+.git
+.gitignore
+README.md
+*.md
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.log
+cache/app-*.zip
+log/*.log
+.env.local
+
+# Exclude marketplace apps - they will be installed fresh during container startup
+public/apps/fusio
+public/apps/account

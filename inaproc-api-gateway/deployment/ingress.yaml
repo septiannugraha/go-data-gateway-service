@@ -21,3 +21,17 @@ spec:
             name: inaproc-api-gateway
             port:
               number: 80
+      - path: /authorization
+        pathType: Prefix
+        backend:
+          service:
+            name: inaproc-api-gateway
+            port:
+              number: 80
+      - path: /consumer
+        pathType: Prefix
+        backend:
+          service:
+            name: inaproc-api-gateway
+            port:
+              number: 80
