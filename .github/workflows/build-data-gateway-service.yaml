@@ -11,12 +11,12 @@ env:
   GCP_PROJECT_ID: luminous-lodge-376415
   GAR_LOCATION: asia-southeast2
   GAR_REPOSITORY: jenkins
-  IMAGE_NAME: inaproc-data-gateway-service
+  IMAGE_NAME: data-gateway-service
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
   GKE_NAMESPACE: prod
-  DEPLOYMENT_NAME: inaproc-data-gateway-service
-  CONTAINER_NAME: inaproc-data-gateway-service
+  DEPLOYMENT_NAME: data-gateway-service
+  CONTAINER_NAME: data-gateway-service
 
 jobs:
   build:
