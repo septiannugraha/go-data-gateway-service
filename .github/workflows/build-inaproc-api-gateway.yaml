@@ -14,7 +14,7 @@ env:
   IMAGE_NAME: inaproc-api-gateway
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
-  GKE_NAMESPACE: inaproc
+  GKE_NAMESPACE: prod
   DEPLOYMENT_NAME: inaproc-api-gateway
   CONTAINER_NAME: inaproc-api-gateway
 

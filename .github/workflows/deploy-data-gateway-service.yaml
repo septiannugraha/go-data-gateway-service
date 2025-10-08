@@ -1,12 +1,12 @@
-name: Deploy Docs to GKE
+name: Deploy Data Gateway Service to GKE
 
 on:
   push:
     branches:
       - ga-deployments
     paths:
-      - 'docs/**'
-      - '.github/workflows/deploy-docs.yaml'
+      - 'data-gateway-service/**'
+      - '.github/workflows/deploy-data-gateway-service.yaml'
   workflow_dispatch:
     inputs:
       image_tag:
@@ -27,8 +27,8 @@ env:
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
   GKE_NAMESPACE: prod
-  DEPLOYMENT_NAME: inaproc-api-gateway-docs
-  IMAGE_REPOSITORY: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-apigateway-docs
+  DEPLOYMENT_NAME: data-gateway-service
+  IMAGE_REPOSITORY: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/data-gateway-service
 
 jobs:
   deploy:
@@ -75,7 +75,7 @@ jobs:
           echo "IMAGE_URI=$IMAGE_URI" >> "$GITHUB_ENV"
 
       - name: Update deployment image
-        working-directory: docs/deployment
+        working-directory: data-gateway-service/deployment
         run: |
           # Update the image tag in kustomization.yaml
           sed -i "s|newTag: .*|newTag: ${{ steps.metadata.outputs.image_tag }}|g" kustomization.yaml
@@ -85,7 +85,7 @@ jobs:
           cat kustomization.yaml
 
       - name: Deploy to GKE
-        working-directory: docs/deployment
+        working-directory: data-gateway-service/deployment
         run: |
           # Apply the manifests using kustomize
           kubectl apply -k .
@@ -97,9 +97,9 @@ jobs:
         run: |
           # Check deployment status
           kubectl get deployment $DEPLOYMENT_NAME -n $GKE_NAMESPACE
-          kubectl get pods -l app=inaproc-api-gateway-docs -n $GKE_NAMESPACE
-          kubectl get service inaproc-api-gateway-docs -n $GKE_NAMESPACE
-          kubectl get ingress inaproc-api-gateway-docs -n $GKE_NAMESPACE || echo "Ingress not ready yet"
+          kubectl get pods -l app=data-gateway-service -n $GKE_NAMESPACE
+          kubectl get service data-gateway-service -n $GKE_NAMESPACE
+          kubectl get ingress data-gateway-service -n $GKE_NAMESPACE || echo "Ingress not ready yet"
 
       - name: Get service endpoints
         run: |
@@ -111,7 +111,7 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Get ingress details if available
-          INGRESS_IP=$(kubectl get ingress inaproc-api-gateway-docs -n $GKE_NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "Pending")
+          INGRESS_IP=$(kubectl get ingress data-gateway-service -n $GKE_NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "Pending")
           echo "- **Ingress IP**: \`$INGRESS_IP\`" >> "$GITHUB_STEP_SUMMARY"
           
           # Instructions for port forwarding
@@ -119,6 +119,6 @@ jobs:
           echo "### Access the application:" >> "$GITHUB_STEP_SUMMARY"
           echo "**Port Forward** (for immediate access):" >> "$GITHUB_STEP_SUMMARY"
           echo "\`\`\`bash" >> "$GITHUB_STEP_SUMMARY"
-          echo "kubectl port-forward service/inaproc-api-gateway-docs 8080:3000 -n $GKE_NAMESPACE" >> "$GITHUB_STEP_SUMMARY"
+          echo "kubectl port-forward service/data-gateway-service 8081:8081 -n $GKE_NAMESPACE" >> "$GITHUB_STEP_SUMMARY"
           echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "Then access: http://localhost:8080" >> "$GITHUB_STEP_SUMMARY"
+          echo "Then access: http://localhost:8081" >> "$GITHUB_STEP_SUMMARY"

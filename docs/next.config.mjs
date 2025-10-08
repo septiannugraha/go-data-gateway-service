@@ -2,11 +2,27 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
+const defaultBasePath = '/api';
+const normalizedBasePath = (() => {
+  const value = process.env.NEXT_PUBLIC_BASE_PATH ?? defaultBasePath;
+  if (value === '' || value === '/') {
+    return '';
+  }
+
+  return value.startsWith('/') ? value.replace(/\/$/, '') : `/${value.replace(/\/$/, '')}`;
+})();
+
+const assetPrefix = process.env.NEXT_PUBLIC_ASSET_PREFIX
+  ?? (normalizedBasePath ? normalizedBasePath : undefined);
+
 /** @type {import('next').NextConfig} */
 const config = {
   // Server-first approach - removed static export
   reactStrictMode: true,
-  // Re-enable image optimization for SSR
+  basePath: normalizedBasePath,
+  assetPrefix,
+  // Removed redirects - basePath handles routing automatically
+  // Disable image optimization to prevent issues in containerized environment
 };
 
 export default withMDX(config);

@@ -1,10 +1,10 @@
-# Apache-based Dockerfile for Fusio
+# Apache-based Dockerfile for Fusio - Optimized with Pre-built Dependencies
 # Based on official fusio-docker implementation
 FROM php:8.3-apache
 
 LABEL maintainer="Generated for LKPP Deployment"
 LABEL version="1.0.0"
-LABEL description="Fusio API Gateway - Apache Version"
+LABEL description="Fusio API Gateway - Apache Version - Optimized"
 
 # Environment variables
 ENV FUSIO_PROJECT_KEY="cee262a5a1bdd205cbfe0dfc2ad4eddf"
@@ -38,7 +38,11 @@ RUN apt-get update && apt-get -y install \
     openssl \
     libssl-dev \
     libicu-dev \
-    libcurl4-openssl-dev
+    libcurl4-openssl-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
 
 # Install PHP extensions
 RUN docker-php-ext-install \
@@ -64,21 +68,32 @@ RUN docker-php-ext-install \
 RUN pecl install memcached && docker-php-ext-enable memcached
 RUN pecl install apcu && docker-php-ext-enable apcu
 
-# Install Composer
-ENV COMPOSER_VERSION="2.8.2"
-RUN wget -O /usr/bin/composer "https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar"
-RUN chmod +x /usr/bin/composer
-
-# Copy and install Fusio application
+# Set working directory
 WORKDIR /var/www/html/fusio
+
+# Copy and extract pre-built vendor dependencies first
+COPY vendor-deps.tar.gz /tmp/vendor-deps.tar.gz
+
+# Copy application files (excluding vendor, handled by .dockerignore)
 COPY . .
-RUN /usr/bin/composer install --no-dev --optimize-autoloader --classmap-authoritative
+RUN mkdir -p /var/www/html/fusio/vendor \
+    && tar -xzf /tmp/vendor-deps.tar.gz -C /var/www/html/fusio/vendor \
+    && rm /tmp/vendor-deps.tar.gz
+
+# Install Composer (needed for autoload generation)
+ENV COMPOSER_VERSION="2.8.2"
+RUN wget -O /usr/bin/composer "https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar" \
+    && chmod +x /usr/bin/composer
+
+# Generate optimized autoloader
 RUN /usr/bin/composer dump-autoload --no-dev --optimize --classmap-authoritative
+
+# Make fusio binary executable
 RUN chmod +x /var/www/html/fusio/bin/fusio
 
 # Apache configuration
-RUN rm /etc/apache2/sites-available/*.conf
-RUN rm /etc/apache2/sites-enabled/*.conf
+RUN rm /etc/apache2/sites-available/*.conf \
+    && rm /etc/apache2/sites-enabled/*.conf
 
 # Create Apache configuration
 RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/fusio.conf && \
@@ -100,8 +115,7 @@ RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/fusio.conf && \
     echo '    CustomLog ${APACHE_LOG_DIR}/fusio.access.log combined' >> /etc/apache2/sites-available/fusio.conf && \
     echo '</VirtualHost>' >> /etc/apache2/sites-available/fusio.conf
 
-RUN a2enmod rewrite
-RUN a2ensite fusio
+RUN a2enmod rewrite && a2ensite fusio
 
 # PHP configuration
 RUN mv "${PHP_INI_DIR}/php.ini-production" "${PHP_INI_DIR}/php.ini"
@@ -117,22 +131,22 @@ RUN echo 'memory_limit = 512M' > "${PHP_INI_DIR}/conf.d/fusio.ini" && \
 RUN rm -f /var/www/html/fusio/public/install.php
 
 # Set proper permissions
-RUN chown -R www-data:www-data /var/www/html/fusio
-RUN chmod -R 755 /var/www/html/fusio
+RUN chown -R www-data:www-data /var/www/html/fusio \
+    && chmod -R 755 /var/www/html/fusio
 
 # Create cron jobs
-RUN echo "" > /etc/cron.d/fusio
-RUN echo "* * * * * www-data cd /var/www/html/fusio && php bin/fusio cronjob" >> /etc/cron.d/fusio
-RUN echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:log_rotate" >> /etc/cron.d/fusio
-RUN echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:clean" >> /etc/cron.d/fusio
-RUN chmod 0644 /etc/cron.d/fusio
+RUN echo "" > /etc/cron.d/fusio && \
+    echo "* * * * * www-data cd /var/www/html/fusio && php bin/fusio cronjob" >> /etc/cron.d/fusio && \
+    echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:log_rotate" >> /etc/cron.d/fusio && \
+    echo "0 0 1 * * www-data cd /var/www/html/fusio && php bin/fusio system:clean" >> /etc/cron.d/fusio && \
+    chmod 0644 /etc/cron.d/fusio
 
 # Copy entrypoint script
-COPY apache-docker-entrypoint.sh /apache-docker-entrypoint.sh
-RUN chmod +x /apache-docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Expose port 80
 EXPOSE 80
 
 # Set entrypoint
-ENTRYPOINT ["/apache-docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

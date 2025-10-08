@@ -38,7 +38,7 @@ export default function HomePage() {
           {/* Right side - Banner Image - Hidden on mobile/tablet */}
           <div className="hidden lg:flex justify-center">
             <Image 
-              src="/img/apigw.png" 
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/img/apigw.png`}
               alt="API Gateway - Collaboration between parties using the API gateway" 
               width={600} 
               height={400} 

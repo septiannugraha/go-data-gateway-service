@@ -3,12 +3,8 @@ kind: Deployment
 metadata:
   name: inaproc-api-gateway
   namespace: prod
-  labels:
-    app: inaproc-api-gateway
-    component: api-gateway
-    environment: production
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: inaproc-api-gateway
@@ -22,25 +18,30 @@ spec:
       containers:
       - name: inaproc-api-gateway
         image: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/inaproc-api-gateway:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
           name: http
         env:
-        - name: FUSIO_ENV
+        - name: APP_ENV
           value: "prod"
-        - name: FUSIO_DEBUG
+        - name: APP_DEBUG
           value: "false"
-        - name: FUSIO_PROJECT_KEY
+        - name: APP_PROJECT_KEY
           value: "cee262a5a1bdd205cbfe0dfc2ad4eddf"
-        - name: FUSIO_CONNECTION
+        - name: APP_CONNECTION
           valueFrom:
             secretKeyRef:
-              name: gateway-service-secrets
+              name: gateway-postgres-uri
               key: GATEWAY_POSTGRES_URI
-        - name: FUSIO_MAILER
+        - name: APP_MAILER
           value: "native://default"
-        - name: FUSIO_MESSENGER
+        - name: APP_MESSENGER
           value: "doctrine://default"
+        - name: APP_URL
+          value: "https://data.eproc.dev"
+        - name: APP_APPS_URL
+          value: "https://data.eproc.dev/apps"
         - name: FUSIO_URL
           value: "https://data.eproc.dev"
         - name: FUSIO_APPS_URL
@@ -50,10 +51,7 @@ spec:
         - name: FUSIO_BACKEND_EMAIL
           value: "admin@fusio-project.org"
         - name: FUSIO_BACKEND_PW
-          valueFrom:
-            secretKeyRef:
-              name: gateway-service-secrets
-              key: GATEWAY_SERVICE_FUSIO_BACKEND_PW
+          value: "secure-admin-password"
         resources:
           requests:
             memory: "512Mi"
@@ -66,14 +64,14 @@ spec:
             path: /apps/account
             port: 80
           initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 10
         readinessProbe:
           httpGet:
             path: /apps/account
             port: 80
           initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 10

@@ -70,6 +70,7 @@ CLAUDE.md
 
 # Archive files
 *.tar.gz
+!vendor-deps.tar.gz
 *.tar.gz.*
 *.zip
 *.rar

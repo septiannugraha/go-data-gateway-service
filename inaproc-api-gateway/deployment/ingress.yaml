@@ -14,7 +14,21 @@ spec:
   - host: data.eproc.dev
     http:
       paths:
-      - path: /
+      - path: /apps/account
+        pathType: Prefix
+        backend:
+          service:
+            name: inaproc-api-gateway
+            port:
+              number: 80
+      - path: /authorization
+        pathType: Prefix
+        backend:
+          service:
+            name: inaproc-api-gateway
+            port:
+              number: 80
+      - path: /consumer
         pathType: Prefix
         backend:
           service:
