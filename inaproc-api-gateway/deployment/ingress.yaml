@@ -21,6 +21,13 @@ spec:
             name: inaproc-api-gateway
             port:
               number: 80
+      - path: /apps/fusio
+        pathType: Prefix
+        backend:
+          service:
+            name: inaproc-api-gateway
+            port:
+              number: 80
       - path: /authorization
         pathType: Prefix
         backend:
