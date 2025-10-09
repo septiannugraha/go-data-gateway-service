@@ -1,0 +1,275 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workflow
+  labels:
+    name: workflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-workflow-config
+  namespace: workflow
+data:
+  DB_TYPE: "postgresdb"
+  DB_POSTGRESDB_HOST: "n8n-postgres"
+  DB_POSTGRESDB_PORT: "5432"
+  DB_POSTGRESDB_DATABASE: "n8n"
+  DB_POSTGRESDB_SCHEMA: "public"
+  N8N_HOST: "0.0.0.0"
+  N8N_PORT: "5678"
+  N8N_PROTOCOL: "https"
+  GENERIC_TIMEZONE: "Asia/Jakarta"
+  N8N_METRICS: "true"
+  N8N_LOG_LEVEL: "info"
+  N8N_LOG_OUTPUT: "console"
+  EXECUTIONS_PROCESS: "main"
+  EXECUTIONS_DATA_SAVE_ON_ERROR: "all"
+  EXECUTIONS_DATA_SAVE_ON_SUCCESS: "all"
+  EXECUTIONS_DATA_MAX_AGE: "168"
+  N8N_BASIC_AUTH_ACTIVE: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n8n-workflow-secrets
+  namespace: workflow
+type: Opaque
+stringData:
+  DB_POSTGRESDB_USER: "n8n"
+  DB_POSTGRESDB_PASSWORD: "n8n_secure_password_2025"
+  N8N_BASIC_AUTH_USER: "admin"
+  N8N_BASIC_AUTH_PASSWORD: "spse_admin_2025"
+  N8N_ENCRYPTION_KEY: "your-32-character-encryption-key-here"
+  WEBHOOK_URL: "https://n8n-workflow.your-domain.com/"
+  FUSIO_API_URL: "https://api.your-domain.com"
+  FUSIO_API_KEY: "your-fusio-api-key"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-postgres-pvc
+  namespace: workflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard-rwo
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data-pvc
+  namespace: workflow
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard-rwo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-postgres
+  namespace: workflow
+  labels:
+    app: n8n-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n-postgres
+  template:
+    metadata:
+      labels:
+        app: n8n-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: n8n-workflow-secrets
+              key: DB_POSTGRESDB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: n8n-workflow-secrets
+              key: DB_POSTGRESDB_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: n8n-workflow-config
+              key: DB_POSTGRESDB_DATABASE
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - n8n
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - n8n
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: n8n-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-postgres
+  namespace: workflow
+spec:
+  selector:
+    app: n8n-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n-workflow
+  namespace: workflow
+  labels:
+    app: n8n-workflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n-workflow
+  template:
+    metadata:
+      labels:
+        app: n8n-workflow
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command: ['sh', '-c']
+        args:
+        - |
+          until pg_isready -h n8n-postgres -p 5432 -U n8n; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+        env:
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: n8n-workflow-secrets
+              key: DB_POSTGRESDB_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: n8n-workflow-secrets
+              key: DB_POSTGRESDB_PASSWORD
+      containers:
+      - name: n8n-workflow
+        image: asia-southeast2-docker.pkg.dev/luminous-lodge-376415/jenkins/n8n-workflow-service:latest
+        ports:
+        - containerPort: 5678
+        envFrom:
+        - configMapRef:
+            name: n8n-workflow-config
+        - secretRef:
+            name: n8n-workflow-secrets
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: n8n-data
+        persistentVolumeClaim:
+          claimName: n8n-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-workflow-service
+  namespace: workflow
+  labels:
+    app: n8n-workflow
+spec:
+  selector:
+    app: n8n-workflow
+  ports:
+  - port: 80
+    targetPort: 5678
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-workflow-ingress
+  namespace: workflow
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  tls:
+  - hosts:
+    - n8n-workflow.your-domain.com
+    secretName: n8n-workflow-tls
+  rules:
+  - host: n8n-workflow.your-domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: n8n-workflow-service
+            port:
+              number: 80

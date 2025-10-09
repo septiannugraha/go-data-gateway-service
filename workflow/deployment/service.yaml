@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-n8n
+  namespace: prod
+spec:
+  selector:
+    app: workflow-n8n
+  ports:
+  - name: workflow-n8n
+    port: 80
+    targetPort: 5678

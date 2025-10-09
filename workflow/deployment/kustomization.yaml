@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- namespace.yaml
+- external-secrets.yaml
+- deployment.yaml
+- service.yaml
+
+namespace: prod
+
+commonLabels:
+  app.kubernetes.io/name: workflow-n8n
+  app.kubernetes.io/part-of: inaproc-apigateway
+
+configMapGenerator:
+- name: n8n-workflows
+  files:
+  - user_onboarding.json
+  - user_onboarding_production.json
