@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-n8n
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workflow-n8n
+  template:
+    metadata:
+      labels:
+        app: workflow-n8n
+        component: workflow
+        environment: production
+    spec:
+      containers:
+      - name: workflow-n8n
+        image: n8nio/n8n:1.114.4
+        ports:
+        - containerPort: 5678
+          name: http
+        env:
+        - name: N8N_HOST
+          value: "0.0.0.0"
+        - name: N8N_PORT
+          value: "5678"
+        - name: TZ
+          value: "Asia/Jakarta"
+        - name: DB_TYPE
+          value: "postgresdb"
+        - name: DB_POSTGRESDB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: workflow-n8n-secrets
+              key: GATEWAY_WORKFLOW_POSTGRES_HOST
+        - name: DB_POSTGRESDB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: workflow-n8n-secrets
+              key: GATEWAY_WORKFLOW_POSTGRES_PORT
+        - name: DB_POSTGRESDB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: workflow-n8n-secrets
+              key: GATEWAY_WORKFLOW_POSTGRES_DATABASE
+        - name: DB_POSTGRESDB_USER
+          valueFrom:
+            secretKeyRef:
+              name: workflow-n8n-secrets
+              key: GATEWAY_WORKFLOW_POSTGRES_USER
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: workflow-n8n-secrets
+              key: GATEWAY_WORKFLOW_POSTGRES_PASSWORD
+        - name: N8N_ENCRYPTION_KEY
+          value: "n8n-workflow-encryption-key-32chars"
+        volumeMounts:
+        - name: n8n-workflows
+          mountPath: /home/node/.n8n/workflows
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "300m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: n8n-workflows
+        configMap:
+          name: n8n-workflows
