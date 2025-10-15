@@ -72,7 +72,7 @@ func (h *TenderHandler) List(w http.ResponseWriter, r *http.Request) {
 			nama_kl,
 			nilai_kontrak,
 			satuan_kerja
-		FROM nessie_iceberg.tender_data
+		FROM nessie_iceberg_gtp.raw_spse.paket_tender
 		WHERE 1=1
 	`
 
@@ -121,7 +121,7 @@ func (h *TenderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT * FROM nessie_iceberg.tender_data
+		SELECT * FROM nessie_iceberg_gtp.raw_spse.paket_tender
 		WHERE tender_id = '%s'
 		LIMIT 1
 	`, tenderID)
@@ -156,7 +156,7 @@ func (h *TenderHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build query based on search criteria
-	query := `SELECT * FROM nessie_iceberg.tender_data WHERE 1=1`
+	query := `SELECT * FROM nessie_iceberg_gtp.raw_spse.paket_tender WHERE 1=1`
 
 	// Add filters dynamically
 	for field, value := range searchCriteria {
