@@ -21,3 +21,27 @@ spec:
             name: data-gateway-service
             port:
               number: 8081
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inaproc-api-gateway-ilb
+  namespace: prod
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+  labels:
+    app: data-gateway-service
+    component: data-gateway
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: data-ilb.eproc.dev
+    http:
+      paths:
+      - path: /data
+        pathType: Prefix
+        backend:
+          service:
+            name: data-gateway-service
+            port:
+              number: 8081
