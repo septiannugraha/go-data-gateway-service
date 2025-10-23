@@ -95,7 +95,7 @@ RUN chmod +x /var/www/html/fusio/bin/fusio
 RUN rm /etc/apache2/sites-available/*.conf \
     && rm /etc/apache2/sites-enabled/*.conf
 
-# Create Apache configuration
+# Create Apache configuration (without rewrite rules - handled by .htaccess)
 RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/fusio.conf && \
     echo '    ServerName localhost' >> /etc/apache2/sites-available/fusio.conf && \
     echo '    DocumentRoot /var/www/html/fusio/public' >> /etc/apache2/sites-available/fusio.conf && \
@@ -103,13 +103,6 @@ RUN echo '<VirtualHost *:80>' > /etc/apache2/sites-available/fusio.conf && \
     echo '        Options FollowSymLinks' >> /etc/apache2/sites-available/fusio.conf && \
     echo '        AllowOverride All' >> /etc/apache2/sites-available/fusio.conf && \
     echo '        Require all granted' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteEngine On' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteBase /' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteCond %{REQUEST_FILENAME} !-f' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteCond %{REQUEST_FILENAME} !-d' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteRule (.*) /index.php/$1 [L]' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteCond %{HTTP:Authorization} ^(.*)' >> /etc/apache2/sites-available/fusio.conf && \
-    echo '        RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]' >> /etc/apache2/sites-available/fusio.conf && \
     echo '    </Directory>' >> /etc/apache2/sites-available/fusio.conf && \
     echo '    ErrorLog ${APACHE_LOG_DIR}/fusio.error.log' >> /etc/apache2/sites-available/fusio.conf && \
     echo '    CustomLog ${APACHE_LOG_DIR}/fusio.access.log combined' >> /etc/apache2/sites-available/fusio.conf && \
