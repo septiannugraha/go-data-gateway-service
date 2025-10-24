@@ -98,8 +98,8 @@ jobs:
           # Check deployment status
           kubectl get deployment $DEPLOYMENT_NAME -n $GKE_NAMESPACE
           kubectl get pods -l app=inaproc-api-gateway -n $GKE_NAMESPACE
-          kubectl get service inaproc-api-gateway-service -n $GKE_NAMESPACE
-          kubectl get ingress inaproc-api-gateway-ingress -n $GKE_NAMESPACE || echo "Ingress not ready yet"
+          kubectl get service inaproc-api-gateway -n $GKE_NAMESPACE
+          kubectl get ingress inaproc-api-gateway -n $GKE_NAMESPACE || echo "Ingress not ready yet"
           kubectl get externalsecrets -n $GKE_NAMESPACE || echo "External secrets not ready yet"
 
       - name: Get service endpoints
