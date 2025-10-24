@@ -23,7 +23,7 @@ on:
         - staging
 
 env:
-  GCP_PROJECT_ID: gtp-apigateway-prod
+  GCP_PROJECT_ID: gtp-data-inaproc
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
   GKE_NAMESPACE: prod
@@ -32,7 +32,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: general
+    runs-on: windows
     permissions:
         contents: read
         id-token: write

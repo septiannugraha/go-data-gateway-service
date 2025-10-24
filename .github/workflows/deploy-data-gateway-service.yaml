@@ -23,7 +23,7 @@ on:
         - staging
 
 env:
-  GCP_PROJECT_ID: gtp-apigateway-prod
+  GCP_PROJECT_ID: gtp-data-inaproc
   GKE_CLUSTER: default
   GKE_LOCATION: asia-southeast2
   GKE_NAMESPACE: prod
