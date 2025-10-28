@@ -117,6 +117,36 @@ if [ $? -ne 0 ]; then
     php bin/fusio migration:migrate --no-interaction
 fi
 
+# Fix .htaccess to prevent infinite redirect loop
+echo "Fixing .htaccess configuration..."
+HTACCESS_FILE="/var/www/html/fusio/public/.htaccess"
+if [ -f "$HTACCESS_FILE" ]; then
+    # Backup original .htaccess
+    cp "$HTACCESS_FILE" "$HTACCESS_FILE.bak"
+    
+    # Create fixed .htaccess with proper rewrite rules
+    cat > "$HTACCESS_FILE" << 'EOF'
+RewriteEngine On
+
+# Allow /apps/ directory to be served directly
+RewriteCond %{REQUEST_URI} ^/apps/
+RewriteRule ^ - [L]
+
+# For all other requests, rewrite to index.php if not a file or directory
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule (.*) index.php/$1 [L]
+
+# Pass Authorization header to PHP
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
+EOF
+    
+    echo "✓ .htaccess fixed to prevent infinite redirects"
+else
+    echo "⚠️  Warning: .htaccess file not found at $HTACCESS_FILE"
+fi
+
 # Check if backend user exists and create if needed
 echo "Checking backend user..."
 php bin/fusio system:check user
